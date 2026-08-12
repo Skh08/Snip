@@ -1,0 +1,6 @@
+:root { font-family: Inter, Arial, sans-serif; color: #172033; background: #f5f7fb; }
+* { box-sizing: border-box; } body { margin: 0; } main { width: min(900px, 100%); margin: 0 auto; padding: 48px 20px; }
+header { margin-bottom: 28px; } .eyebrow { color: #227a6a; font-size: .75rem; font-weight: 700; letter-spacing: .12em; } h1 { margin: 6px 0; font-size: clamp(2rem, 6vw, 3.25rem); }
+#conversation { display: grid; gap: 14px; min-height: 320px; } .message { white-space: pre-wrap; padding: 18px; border-radius: 14px; line-height: 1.55; } .assistant { background: white; border: 1px solid #dce3ef; } .user { background: #1d5f72; color: white; margin-left: 12%; }
+form { margin-top: 24px; } label { display: block; margin-bottom: 8px; font-weight: 700; } .input-row { display: flex; gap: 10px; } textarea { flex: 1; min-height: 80px; padding: 12px; font: inherit; border: 1px solid #b7c3d5; border-radius: 10px; resize: vertical; } button { padding: 0 20px; border: 0; border-radius: 10px; color: white; background: #147a65; font-weight: 700; cursor: pointer; } button:disabled { opacity: .6; cursor: wait; } .sources { margin: 6px 0 0; font-size: .87rem; color: #466078; }
+@media (max-width: 580px) { main { padding-top: 28px; } .input-row { display: grid; } button { min-height: 44px; } }
