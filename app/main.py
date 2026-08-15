@@ -44,7 +44,9 @@ def chat(request: SearchRequest) -> ChatResponse:
         sources = semantic_search(request.query, chunks, EMBEDDINGS, min(request.limit, 4))
     except RuntimeError as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
-    if not sources or sources[0].score < 0.25:
+    # Cross-language embeddings often have lower cosine scores than same-language matches.
+    # Keep a conservative floor, then let the grounded-answer prompt reject insufficient evidence.
+    if not sources or sources[0].score < 0.10:
         return ChatResponse(
             answer="ამ კითხვაზე პასუხი მოცემულ СНиП 2.04.08-87 დოკუმენტში საკმარისი სანდოობით ვერ მოიძებნა.",
             sources=[], grounded=False,
