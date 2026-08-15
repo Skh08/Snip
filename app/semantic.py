@@ -18,6 +18,7 @@ FOREIGN_LETTERS = re.compile(r"[A-Za-zА-Яа-яЁё]")
 FORBIDDEN_GEORGIAN_OUTPUT = (
     "მთელყოფილად", "საბითუმო", "საქლიმატო წერტილი", "ნაძარცავი", "ტუფი",
     "მეთოდი −45", "მეთოდი -45",
+    "ციტირებული მტკიცებულების მიხედვით", "მტკიცებულების მიხედვით",
 )
 
 # Mandatory renderings for common Russian terms in this standard.  The final
@@ -39,6 +40,8 @@ Use these exact Georgian forms when the corresponding Russian concept appears:
 - транзитная прокладка = ტრანზიტული გატარება
 - по стенам зданий = შენობების კედლებზე
 - детские учреждения = საბავშვო დაწესებულებები
+- по стенам зданий детских учреждений = საბავშვო დაწესებულებების შენობების კედლებზე
+- газопроводы всех давлений = ყველა წნევის გაზსადენები
 - газоснабжение = გაზმომარაგება
 - не допускается = დაუშვებელია
 - МПа = მპა
@@ -169,6 +172,7 @@ def polish_georgian_answer(draft: str) -> str:
         instructions=("You are the final Georgian technical-language editor for a safety standard. "
                       "Rewrite the draft only to make it grammatical, precise, and natural Georgian. "
                       "Do not add, remove, infer, or change any technical fact, number, unit, condition, or scope. "
+                      "State the provision directly; never refer to evidence, citations, or the answer-generation process. "
                       "Return exactly one short paragraph of one to three sentences, in Georgian only. "
                       "Do not include headings, sources, labels, Markdown, or commentary.\n\n"
                       + GEORGIAN_TECHNICAL_GLOSSARY),
@@ -201,6 +205,7 @@ def answer_question(question: str, sources: list[SearchHit]) -> str:
         instructions=("Answer only from the supplied SNIP evidence. Write in Georgian only. "
                       "Return exactly one short, clear professional paragraph of one to three sentences. "
                       "Do not add a heading, a source line, labels, Markdown, Russian words, or facts not in evidence. "
+                      "State the rule directly; never begin with meta-language such as 'according to the cited evidence' or 'the evidence shows'. "
                       "Keep every number, decimal separator, unit, limitation, and condition exact. Do not invent parenthetical explanations. Address only the question asked. "
                       "If the user's place, object, or condition is not explicitly named in the evidence, do not treat it as an exact match; state the evidence's actual scope. "
                       "If a broad question asks whether gas supply is allowed but the evidence only restricts a route, pressure, wall, or other specific condition, distinguish that narrow restriction from a general prohibition. "
