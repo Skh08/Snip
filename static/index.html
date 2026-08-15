@@ -3,14 +3,56 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>СНиП 2.04.08-87 — Chatbot</title>
+    <meta name="theme-color" content="#f5f7f4" />
+    <title>СНиП 2.04.08-87 — ჩატბოტი</title>
     <link rel="stylesheet" href="/assets/style.css" />
   </head>
   <body>
-    <main>
-      <header><p class="eyebrow">SOURCE-GROUNDED ASSISTANT</p><h1>СНиП 2.04.08-87</h1><p>Газоснабжение — პასუხები მხოლოდ დოკუმენტის წყაროებით.</p></header>
-      <section id="conversation" aria-live="polite"><div class="message assistant">დასვით კითხვა ქართულად ან რუსულად. პასუხთან ერთად გამოჩნდება შესაბამისი პუნქტი ან ცხრილი.</div></section>
-      <form id="question-form"><label for="question">თქვენი კითხვა</label><div class="input-row"><textarea id="question" required maxlength="500" placeholder="მაგ.: რა მოთხოვნებია მიწისქვეშა გაზსადენებისთვის?"></textarea><button type="submit">გაგზავნა</button></div></form>
+    <main class="app-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow"><span class="status-dot"></span> დოკუმენტზე დაფუძნებული ასისტენტი</p>
+          <h1>СНиП <span>2.04.08-87</span></h1>
+          <p class="subtitle">გაზმომარაგება — პასუხები მხოლოდ დოკუმენტში არსებულ ინფორმაციასა და ზუსტ პუნქტებზე დაყრდნობით.</p>
+        </div>
+        <aside class="document-card" aria-label="დოკუმენტის ინფორმაცია">
+          <span class="document-card__label">აქტიური წყარო</span>
+          <strong>Газоснабжение</strong>
+          <span>პასუხი ქართულ ენაზე</span>
+        </aside>
+      </header>
+
+      <section class="chat-panel" aria-label="საუბარი ჩატბოტთან">
+        <div class="panel-heading">
+          <div>
+            <p class="panel-kicker">კითხვა და პასუხი</p>
+            <h2>როგორ დაგეხმაროთ?</h2>
+          </div>
+          <span class="language-note">მხოლოდ ქართული კითხვა</span>
+        </div>
+
+        <section id="conversation" aria-live="polite" aria-label="შეტყობინებები">
+          <div class="message assistant">
+            <span class="message-label">ასისტენტი</span>
+            დასვით კონკრეტული კითხვა ქართულად. პასუხთან ერთად გამოჩნდება შესაბამისი პუნქტი ან ცხრილი.
+          </div>
+        </section>
+
+        <div class="examples" aria-label="სატესტო კითხვები">
+          <span>სცადეთ:</span>
+          <button type="button" data-question="რა არის პოლიეთილენის გაზსადენის ჩაღრმავების მინიმალური სიღრმე?">პოლიეთილენის გაზსადენის სიღრმე</button>
+          <button type="button" data-question="რა მოთხოვნებია მიწისზედა გაზსადენებისთვის?">მიწისზედა გაზსადენი</button>
+        </div>
+
+        <form id="question-form">
+          <label for="question">თქვენი კითხვა</label>
+          <div class="input-row">
+            <textarea id="question" required maxlength="500" rows="2" placeholder="მაგ.: რა მოთხოვნებია მიწისქვეშა გაზსადენისთვის?"></textarea>
+            <button type="submit"><span>გაგზავნა</span><span aria-hidden="true">→</span></button>
+          </div>
+          <p class="input-help">პასუხი ეფუძნება მხოლოდ СНиП 2.04.08-87 დოკუმენტს.</p>
+        </form>
+      </section>
     </main>
     <script src="/assets/app.js"></script>
   </body>
