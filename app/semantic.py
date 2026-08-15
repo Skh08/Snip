@@ -14,6 +14,29 @@ EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL", "gpt-5-mini")
 MAX_OUTPUT_TOKENS = int(os.getenv("OPENAI_MAX_OUTPUT_TOKENS", "600"))
 
+# Mandatory renderings for common Russian terms in this standard.  The final
+# language pass is deliberately separate from evidence selection and cannot add facts.
+GEORGIAN_TECHNICAL_GLOSSARY = """
+Use these exact Georgian forms when the corresponding Russian concept appears:
+- газопровод = გაზსადენი
+- полиэтиленовый газопровод = პოლიეთილენის გაზსადენი
+- глубина прокладки = ჩაღრმავების სიღრმე
+- до верха трубы = მილის ზედა ნიშნულამდე
+- расчетная температура наружного воздуха = გარე ჰაერის საანგარიშო ტემპერატურა
+- ниже минус 40 °С = −40 °C-ზე დაბალი
+- грунт = ნიადაგი
+- давление газа = გაზის წნევა
+- подземный газопровод = მიწისქვეშა გაზსადენი
+- надземный газопровод = მიწისზედა გაზსადენი
+- проектирование = დაპროექტება
+- прокладка = დაგება
+- футляр = დამცავი გარსაცმი
+- таблица = ცხრილი
+- приложение = დანართი
+Never use these malformed or irrelevant expressions: „მთელყოფილად“, „საბითუმო“,
+„საქლიმატო წერტილი“, „ნაძარცავი“, „ტუფი“.
+""".strip()
+
 
 def _client() -> OpenAI:
     if not os.getenv("OPENAI_API_KEY"):
@@ -100,7 +123,7 @@ def select_relevant_sources(question: str, candidates: list[SearchHit], limit: i
     return selected or candidates[:1]
 
 
-def answer_question(question: str, sources: list[SearchHit]) -> str:
+def _legacy_answer_question(question: str, sources: list[SearchHit]) -> str:
     evidence = "\n\n".join(f"[{item.chunk.source_label}]\n{item.chunk.text}" for item in sources)
     response = _client().responses.create(
         model=CHAT_MODEL,
@@ -116,3 +139,45 @@ def answer_question(question: str, sources: list[SearchHit]) -> str:
     if not answer:
         raise RuntimeError("პასუხის გენერირება ვერ შესრულდა. სცადეთ თავიდან.")
     return answer
+
+
+def polish_georgian_answer(draft: str) -> str:
+    """Enforce the glossary and answer shape without changing cited facts."""
+    response = _client().responses.create(
+        model=CHAT_MODEL,
+        reasoning={"effort": "minimal"},
+        max_output_tokens=MAX_OUTPUT_TOKENS,
+        instructions=("You are the final Georgian technical-language editor for a safety standard. "
+                      "Rewrite the draft only to make it grammatical, precise, and natural Georgian. "
+                      "Do not add, remove, infer, or change any technical fact, number, unit, condition, or scope. "
+                      "Return exactly one short paragraph of one to three sentences, in Georgian only. "
+                      "Do not include headings, sources, labels, Markdown, or commentary.\n\n"
+                      + GEORGIAN_TECHNICAL_GLOSSARY),
+        input=f"Draft to edit:\n{draft}",
+    )
+    polished = response.output_text.strip()
+    if not polished:
+        raise RuntimeError("ქართული ტექნიკური პასუხის რედაქტირება ვერ შესრულდა. სცადეთ თავიდან.")
+    return polished
+
+
+# Re-declare the public answer function after the language editor so the response
+# pipeline is always evidence generation followed by terminology enforcement.
+def answer_question(question: str, sources: list[SearchHit]) -> str:
+    evidence = "\n\n".join(f"[{item.chunk.source_label}]\n{item.chunk.text}" for item in sources)
+    response = _client().responses.create(
+        model=CHAT_MODEL,
+        reasoning={"effort": "minimal"},
+        max_output_tokens=MAX_OUTPUT_TOKENS,
+        instructions=("Answer only from the supplied SNIP evidence. Write in Georgian only. "
+                      "Return exactly one short, clear professional paragraph of one to three sentences. "
+                      "Do not add a heading, a source line, labels, Markdown, Russian words, or facts not in evidence. "
+                      "Keep every number, unit, limitation, and condition exact. Address only the question asked. "
+                      "If evidence is insufficient, say this plainly in Georgian.\n\n"
+                      + GEORGIAN_TECHNICAL_GLOSSARY),
+        input=f"Question: {question}\n\nEvidence:\n{evidence}",
+    )
+    answer = response.output_text.strip()
+    if not answer:
+        raise RuntimeError("ქართული პასუხის გენერირება ვერ შესრულდა. სცადეთ თავიდან.")
+    return polish_georgian_answer(answer)

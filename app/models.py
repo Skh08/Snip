@@ -11,6 +11,8 @@ class Chunk(BaseModel):
     ordinal: int
     source_type: str = "docx"
     source_url: str | None = None
+    verification_status: str | None = None
+    verification_url: str | None = None
 
 
 class SearchRequest(BaseModel):
