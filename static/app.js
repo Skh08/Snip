@@ -3,9 +3,10 @@ const input = document.querySelector('#question');
 const conversation = document.querySelector('#conversation');
 const submitButton = form.querySelector('button[type="submit"]');
 
-function addMessage(text, type, sources = []) {
+function addMessage(text, type, sources = [], options = {}) {
   const item = document.createElement('article');
   item.className = `message ${type}`;
+  if (options.clarification) item.classList.add('clarification');
 
   const label = document.createElement('span');
   label.className = 'message-label';
@@ -70,7 +71,13 @@ form.addEventListener('submit', async event => {
     let data;
     try { data = JSON.parse(body); } catch { data = { detail: body }; }
     indicator.remove();
-    addMessage(data.answer || data.detail || 'შეცდომა მოხდა. სცადეთ ხელახლა.', 'assistant', data.sources || []);
+    const sources = data.grounded ? (data.sources || []) : [];
+    addMessage(
+      data.answer || data.detail || 'შეცდომა მოხდა. სცადეთ ხელახლა.',
+      'assistant',
+      sources,
+      { clarification: data.grounded === false }
+    );
   } catch {
     indicator.remove();
     addMessage('სერვერთან კავშირი ვერ დამყარდა. სცადეთ ხელახლა.', 'assistant');
