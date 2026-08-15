@@ -6,6 +6,7 @@ from openai import OpenAIError
 from fastapi.staticfiles import StaticFiles
 
 from .models import ChatResponse, SearchRequest, SearchHit
+from .language import is_georgian_question
 from .search import load_chunks, search
 from .semantic import answer_question, semantic_search
 
@@ -36,6 +37,11 @@ def document_search(request: SearchRequest) -> list[SearchHit]:
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: SearchRequest) -> ChatResponse:
+    if not is_georgian_question(request.query):
+        return ChatResponse(
+            answer="გთხოვთ, კითხვა ქართულ ენაზე მომაწოდოთ.",
+            sources=[], grounded=False,
+        )
     chunks = load_chunks(KNOWLEDGE_BASE)
     if not chunks:
         raise HTTPException(status_code=503, detail="Knowledge base is not built. Run the ingestion command first.")
@@ -52,7 +58,10 @@ def chat(request: SearchRequest) -> ChatResponse:
             answer="ამ კითხვაზე პასუხი მოცემულ СНиП 2.04.08-87 დოკუმენტში საკმარისი სანდოობით ვერ მოიძებნა.",
             sources=[], grounded=False,
         )
-    answer = answer_question(request.query, sources)
+    try:
+        answer = answer_question(request.query, sources)
+    except (RuntimeError, OpenAIError) as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
     return ChatResponse(answer=answer, sources=sources, grounded=True)
 
 

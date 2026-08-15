@@ -12,7 +12,7 @@ from .models import Chunk, SearchHit
 
 EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL", "gpt-5-mini")
-MAX_OUTPUT_TOKENS = int(os.getenv("OPENAI_MAX_OUTPUT_TOKENS", "400"))
+MAX_OUTPUT_TOKENS = int(os.getenv("OPENAI_MAX_OUTPUT_TOKENS", "600"))
 
 
 def _client() -> OpenAI:
@@ -40,13 +40,17 @@ def translate_to_russian(question: str) -> str:
     """Make Russian retrieval reliable when the visitor asks in Georgian."""
     response = _client().responses.create(
         model=CHAT_MODEL,
-        max_output_tokens=100,
+        reasoning={"effort": "minimal"},
+        max_output_tokens=200,
         instructions=("Translate the question into Russian for searching a Russian technical standard. "
                       "Return only the Russian search query. Preserve numbers, units, and section references. "
                       "If it is already Russian, return it unchanged."),
         input=question,
     )
-    return response.output_text.strip() or question
+    translated = response.output_text.strip()
+    if not translated:
+        raise RuntimeError("კითხვის რუსულად გარდაქმნა ვერ შესრულდა. სცადეთ თავიდან.")
+    return translated
 
 
 def semantic_search(query: str, chunks: list[Chunk], embeddings_path: Path, limit: int) -> list[SearchHit]:
@@ -73,10 +77,14 @@ def answer_question(question: str, sources: list[SearchHit]) -> str:
     evidence = "\n\n".join(f"[{item.chunk.source_label}]\n{item.chunk.text}" for item in sources)
     response = _client().responses.create(
         model=CHAT_MODEL,
+        reasoning={"effort": "minimal"},
         max_output_tokens=MAX_OUTPUT_TOKENS,
         instructions=("Answer only from the supplied СНиП evidence. Answer in the user's language. "
                       "If the evidence is insufficient, say so plainly. Do not invent requirements or sources. "
                       "End with the exact bracketed source labels you used."),
         input=f"Question: {question}\n\nEvidence:\n{evidence}",
     )
-    return response.output_text
+    answer = response.output_text.strip()
+    if not answer:
+        raise RuntimeError("პასუხის გენერირება ვერ შესრულდა. სცადეთ თავიდან.")
+    return answer

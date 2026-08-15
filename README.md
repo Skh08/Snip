@@ -25,7 +25,7 @@ The web copy is never used to silently replace a Word passage: its chunks are ma
 
 ## Multilingual questions
 
-The chatbot translates a visitor's Georgian question into a Russian search query, then retrieves against both language forms before generating a grounded answer in the user's language. The default 400-token answer cap keeps usage predictable. Set `OPENAI_API_KEY` only in `.env` locally or Railway Variables in production; never commit it.
+The chatbot accepts Georgian questions only. It translates the question into a Russian search query, then retrieves against both language forms before generating a grounded Georgian answer. Questions without Georgian script receive a Georgian instruction to ask in Georgian. The default 600-token answer cap keeps usage predictable. Set `OPENAI_API_KEY` only in `.env` locally or Railway Variables in production; never commit it.
 
 Open `http://127.0.0.1:8000` to use the chatbot. `GET /health` reports whether the document has been indexed; `POST /search` exposes the retrieval layer for testing.
 
