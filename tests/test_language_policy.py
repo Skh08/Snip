@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from app.language import is_georgian_question
+from app.language import is_georgian_question, needs_clarification
 from app.semantic import _valid_final_answer
 
 
@@ -17,3 +17,7 @@ class LanguagePolicyTests(TestCase):
         self.assertTrue(_valid_final_answer("ტემპერატურა არის −40 °C-ზე დაბალი."))
         self.assertFalse(_valid_final_answer("გაზსადენი უნდა იყოს not less than 1.0 m."))
         self.assertFalse(_valid_final_answer("სიღრმე უნდა იყოს მთელყოფილად 1,0 მ."))
+
+    def test_ambiguous_kindergarten_question_requires_clarification(self) -> None:
+        self.assertTrue(needs_clarification("საბავშვო ბაღებში გაზი შეიძლება?"))
+        self.assertFalse(needs_clarification("საბავშვო ბაღში ტრანზიტული გაზსადენის გატარება შეიძლება?"))

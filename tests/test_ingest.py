@@ -48,3 +48,15 @@ class IngestionTests(TestCase):
         self.assertEqual(chunks[2].source_label, "Таблица 2")
         self.assertEqual(chunks[3].section, "3. РАСЧЕТНЫЕ РАСХОДЫ ГАЗА")
         self.assertEqual(chunks[4].source_label, "п. 3.4")
+
+    def test_title_case_chapter_is_recognized_but_a_note_is_not(self) -> None:
+        document = _document(
+            "4. Наружные газопроводы и сооружения",
+            "4.1. Требования распространяются на наружные газопроводы.",
+            "2. При применении газа следует учитывать норму.",
+        )
+        with patch("app.ingest.Document", return_value=document):
+            chunks = parse_docx("unused.docx")
+
+        self.assertEqual(chunks[1].section, "4. Наружные газопроводы и сооружения")
+        self.assertEqual(chunks[2].section, "4. Наружные газопроводы и сооружения")

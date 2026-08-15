@@ -37,7 +37,7 @@ def main() -> None:
     cases = (
         ("რა არის პოლიეთილენის გაზსადენის ჩაღრმავების მინიმალური სიღრმე?", "п. 4.92", "1"),
         ("რა მოთხოვნაა თავისუფალ ტერიტორიაზე დაბალ საყრდენებზე მოწყობილი მიწისზედა გაზსადენისთვის?", "п. 4.28", "0,35"),
-        ("საბავშვო ბაღებში გაზი შეიძლება?", "п. 4.22", "ტრანზიტ"),
+        ("საბავშვო ბაღებში ტრანზიტული გაზსადენის გატარება დასაშვებია?", "п. 4.22", "ტრანზიტ"),
     )
     for question, expected_source, expected_text in cases:
         response = request("/chat", {"query": question})
@@ -46,6 +46,12 @@ def main() -> None:
         require(expected_source in labels, f"wrong source for {question}: {labels}")
         require(expected_text in response["answer"], f"missing expected wording for {question}: {response['answer']}")
         print(f"PASS: {expected_source} — {response['answer']}")
+
+    ambiguous = request("/chat", {"query": "საბავშვო ბაღებში გაზი შეიძლება?"})
+    require(not ambiguous["grounded"], "ambiguous kindergarten question must ask for clarification")
+    require(not ambiguous["sources"], "clarification must not show a guessed source")
+    require("დააზუსტეთ" in ambiguous["answer"], "clarification text is missing")
+    print("PASS: ambiguous kindergarten question requests clarification")
 
 
 if __name__ == "__main__":

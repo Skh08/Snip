@@ -10,7 +10,7 @@ from docx import Document
 from .models import Chunk
 
 # Chapter headings are e.g. "4. НАРУЖНЫЕ ГАЗОПРОВОДЫ"; do not treat "4.17." as a heading.
-SECTION_RE = re.compile(r"^\d+\.\s+[А-ЯЁ][А-ЯЁ0-9\s,;:()«»\"*\-]+$")
+SECTION_RE = re.compile(r"^\d+\.\s+\D+[^.?!]$")
 PARAGRAPH_RE = re.compile(r"^(\d+(?:\.\d+)+)\.?\s*(.*)$")
 APPENDIX_RE = re.compile(r"^(?:Приложение|ПРИЛОЖЕНИЕ)\b", re.IGNORECASE)
 TABLE_RE = re.compile(r"^(?:Таблица|ТАБЛИЦА)\s+(\d+)", re.IGNORECASE)
