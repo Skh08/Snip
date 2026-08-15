@@ -18,6 +18,7 @@ class LanguagePolicyTests(TestCase):
         self.assertTrue(_valid_final_answer("ტემპერატურა არის −40 °C-ზე დაბალი."))
         self.assertFalse(_valid_final_answer("გაზსადენი უნდა იყოს not less than 1.0 m."))
         self.assertFalse(_valid_final_answer("სიღრმე უნდა იყოს მთელყოფილად 1,0 მ."))
+        self.assertFalse(_valid_final_answer("ტემპერატურა მეთოდი −45 °C-მდეა."))
 
     def test_ambiguous_kindergarten_question_requires_clarification(self) -> None:
         self.assertTrue(needs_clarification("საბავშვო ბაღებში გაზი შეიძლება?"))

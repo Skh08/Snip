@@ -17,6 +17,7 @@ MAX_OUTPUT_TOKENS = int(os.getenv("OPENAI_MAX_OUTPUT_TOKENS", "600"))
 FOREIGN_LETTERS = re.compile(r"[A-Za-zА-Яа-яЁё]")
 FORBIDDEN_GEORGIAN_OUTPUT = (
     "მთელყოფილად", "საბითუმო", "საქლიმატო წერტილი", "ნაძარცავი", "ტუფი",
+    "მეთოდი −45", "მეთოდი -45",
 )
 
 # Mandatory renderings for common Russian terms in this standard.  The final
@@ -29,6 +30,7 @@ Use these exact Georgian forms when the corresponding Russian concept appears:
 - до верха трубы = მილის ზედა ნიშნულამდე
 - расчетная температура наружного воздуха = გარე ჰაერის საანგარიშო ტემპერატურა
 - ниже минус 40 °С = −40 °C-ზე დაბალი
+- до минус 45 °С включительно = −45 °C-მდე ჩათვლით
 - грунт = ნიადაგი
 - давление газа = გაზის წნევა
 - подземный газопровод = მიწისქვეშა გაზსადენი
@@ -47,7 +49,7 @@ Use these exact Georgian forms when the corresponding Russian concept appears:
 - таблица = ცხრილი
 - приложение = დანართი
 Never use these malformed or irrelevant expressions: „მთელყოფილად“, „საბითუმო“,
-„საქლიმატო წერტილი“, „ნაძარცავი“, „ტუფი“.
+„საქლიმატო წერტილი“, „ნაძარცავი“, „ტუფი“, „მეთოდი −45 °C-მდე“.
 """.strip()
 
 
