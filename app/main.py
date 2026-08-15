@@ -2,6 +2,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
+from openai import OpenAIError
 from fastapi.staticfiles import StaticFiles
 
 from .models import ChatResponse, SearchRequest, SearchHit
@@ -42,7 +43,7 @@ def chat(request: SearchRequest) -> ChatResponse:
         raise HTTPException(status_code=503, detail="Multilingual search is not ready. Configure OPENAI_API_KEY and build embeddings.")
     try:
         sources = semantic_search(request.query, chunks, EMBEDDINGS, min(request.limit, 4))
-    except RuntimeError as error:
+    except (RuntimeError, OpenAIError) as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
     # Cross-language embeddings often have lower cosine scores than same-language matches.
     # Keep a conservative floor, then let the grounded-answer prompt reject insufficient evidence.

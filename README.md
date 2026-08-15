@@ -25,7 +25,7 @@ The web copy is never used to silently replace a Word passage: its chunks are ma
 
 ## Multilingual questions
 
-The chatbot uses `text-embedding-3-small` to retrieve Russian evidence from Georgian or Russian questions, then generates a grounded answer in the user's language. The default 400-token answer cap keeps usage predictable. Set `OPENAI_API_KEY` only in `.env` locally or Railway Variables in production; never commit it.
+The chatbot translates a visitor's Georgian question into a Russian search query, then retrieves against both language forms before generating a grounded answer in the user's language. The default 400-token answer cap keeps usage predictable. Set `OPENAI_API_KEY` only in `.env` locally or Railway Variables in production; never commit it.
 
 Open `http://127.0.0.1:8000` to use the chatbot. `GET /health` reports whether the document has been indexed; `POST /search` exposes the retrieval layer for testing.
 

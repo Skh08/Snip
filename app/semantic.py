@@ -36,14 +36,35 @@ def build_embeddings(chunks: list[Chunk], destination: Path) -> int:
     return len(vectors)
 
 
+def translate_to_russian(question: str) -> str:
+    """Make Russian retrieval reliable when the visitor asks in Georgian."""
+    response = _client().responses.create(
+        model=CHAT_MODEL,
+        max_output_tokens=100,
+        instructions=("Translate the question into Russian for searching a Russian technical standard. "
+                      "Return only the Russian search query. Preserve numbers, units, and section references. "
+                      "If it is already Russian, return it unchanged."),
+        input=question,
+    )
+    return response.output_text.strip() or question
+
+
 def semantic_search(query: str, chunks: list[Chunk], embeddings_path: Path, limit: int) -> list[SearchHit]:
     stored = json.loads(embeddings_path.read_text(encoding="utf-8"))
     vectors = stored["vectors"]
     if len(vectors) != len(chunks):
         raise RuntimeError("Embeddings do not match the knowledge base; rebuild them.")
-    query_vector = _client().embeddings.create(model=stored["model"], input=query).data[0].embedding
+    russian_query = translate_to_russian(query)
+    query_vectors = [item.embedding for item in _client().embeddings.create(
+        model=stored["model"], input=[query, russian_query]
+    ).data]
     def cosine(vector: list[float]) -> float:
-        return sum(a * b for a, b in zip(query_vector, vector)) / (math.sqrt(sum(a * a for a in query_vector)) * math.sqrt(sum(b * b for b in vector)))
+        magnitude = math.sqrt(sum(a * a for a in vector))
+        return max(
+            sum(a * b for a, b in zip(query_vector, vector)) /
+            (math.sqrt(sum(a * a for a in query_vector)) * magnitude)
+            for query_vector in query_vectors
+        )
     ranked = sorted(((cosine(vector), chunk) for vector, chunk in zip(vectors, chunks)), reverse=True, key=lambda item: item[0])
     return [SearchHit(score=round(score, 3), chunk=chunk) for score, chunk in ranked[:limit]]
 
