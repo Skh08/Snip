@@ -21,6 +21,14 @@ FORBIDDEN_GEORGIAN_OUTPUT = (
     "ციტირებული მტკიცებულების მიხედვით", "მტკიცებულების მიხედვით",
 )
 
+
+class ClarificationRequired(Exception):
+    """A grounded answer could not be rendered safely without narrowing scope."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.message = message
+
 # Mandatory renderings for common Russian terms in this standard.  The final
 # language pass is deliberately separate from evidence selection and cannot add facts.
 GEORGIAN_TECHNICAL_GLOSSARY = """
@@ -270,7 +278,7 @@ def answer_question(question: str, sources: list[SearchHit]) -> str:
     # answer.  The evidence was selected, but its Georgian rendering remained
     # invalid after two constrained attempts; ask for the missing scope rather
     # than inventing a technical rule.
-    return (
+    raise ClarificationRequired(
         "მიწისზედა გაზსადენებისთვის მოთხოვნები განთავსების პირობების მიხედვით განსხვავდება. "
         "დააზუსტეთ, საუბარია საყრდენებზე განთავსებაზე, გზის გადაკვეთაზე, შენობის კედელზე გატარებაზე თუ სხვა კონკრეტულ პირობაზე."
     )

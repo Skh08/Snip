@@ -2,7 +2,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from app.language import is_georgian_question, needs_clarification
-from app.semantic import _client, _normalize_answer_artifacts, _valid_final_answer
+from app.semantic import ClarificationRequired, _client, _normalize_answer_artifacts, _valid_final_answer
 
 
 class LanguagePolicyTests(TestCase):
@@ -37,6 +37,7 @@ class LanguagePolicyTests(TestCase):
             "დააზუსტეთ, საუბარია საყრდენებზე განთავსებაზე, გზის გადაკვეთაზე, შენობის კედელზე გატარებაზე თუ სხვა კონკრეტულ პირობაზე."
         )
         self.assertTrue(_valid_final_answer(fallback))
+        self.assertEqual(ClarificationRequired(fallback).message, fallback)
 
     @patch("app.semantic.OpenAI")
     @patch.dict("os.environ", {"OPENAI_API_KEY": "  test-key\n"}, clear=False)

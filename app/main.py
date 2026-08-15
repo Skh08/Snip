@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from .models import ChatResponse, SearchRequest, SearchHit
 from .language import is_georgian_question, needs_clarification
 from .search import load_chunks, search
-from .semantic import answer_question, select_relevant_sources, semantic_search
+from .semantic import ClarificationRequired, answer_question, select_relevant_sources, semantic_search
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 KNOWLEDGE_BASE = BASE_DIR / "data" / "knowledge_base.json"
@@ -80,6 +80,8 @@ def chat(request: SearchRequest) -> ChatResponse:
         )
     try:
         answer = answer_question(request.query, sources)
+    except ClarificationRequired as clarification:
+        return ChatResponse(answer=clarification.message, sources=[], grounded=False)
     except (RuntimeError, OpenAIError) as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
     return ChatResponse(answer=answer, sources=sources, grounded=True)
