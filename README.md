@@ -9,6 +9,9 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 python -m scripts.ingest_sources path\to\СНиП-2.04.08-87.docx
+Copy-Item .env.example .env
+# Set OPENAI_API_KEY in .env, then build multilingual embeddings once:
+python -m scripts.build_embeddings
 uvicorn app.main:app --reload
 ```
 
@@ -19,6 +22,10 @@ python -m scripts.download_web_source
 ```
 
 The web copy is never used to silently replace a Word passage: its chunks are marked `source_type: html` and retain the original URL. During the combined build, it contributes only paragraph numbers absent from Word.
+
+## Multilingual questions
+
+The chatbot uses `text-embedding-3-large` to retrieve Russian evidence from Georgian or Russian questions, then generates a grounded answer in the user's language. Set `OPENAI_API_KEY` only in `.env` locally or Railway Variables in production; never commit it.
 
 Open `http://127.0.0.1:8000` to use the chatbot. `GET /health` reports whether the document has been indexed; `POST /search` exposes the retrieval layer for testing.
 
