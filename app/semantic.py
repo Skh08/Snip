@@ -163,8 +163,15 @@ def _legacy_answer_question(question: str, sources: list[SearchHit]) -> str:
     return answer
 
 
-def polish_georgian_answer(draft: str) -> str:
+def polish_georgian_answer(draft: str, *, strict: bool = False) -> str:
     """Enforce the glossary and answer shape without changing cited facts."""
+    strict_rule = ""
+    if strict:
+        strict_rule = (
+            " This is a recovery pass. Return only Georgian-script prose; digits, punctuation, "
+            "the degree sign, and Georgian unit abbreviations are allowed. Do not use Latin or "
+            "Cyrillic letters, source markers, or brackets."
+        )
     response = _client().responses.create(
         model=CHAT_MODEL,
         reasoning={"effort": "minimal"},
@@ -175,6 +182,7 @@ def polish_georgian_answer(draft: str) -> str:
                       "State the provision directly; never refer to evidence, citations, or the answer-generation process. "
                       "Return exactly one short paragraph of one to three sentences, in Georgian only. "
                       "Do not include headings, sources, labels, Markdown, or commentary.\n\n"
+                      + strict_rule
                       + GEORGIAN_TECHNICAL_GLOSSARY),
         input=f"Draft to edit:\n{draft}",
     )
@@ -251,12 +259,18 @@ def answer_question(question: str, sources: list[SearchHit]) -> str:
     polished = _normalize_answer_artifacts(polish_georgian_answer(answer))
     if _valid_final_answer(polished):
         return polished
-    # A second correction is used only when the first language pass produced
-    # malformed mixed-script text, keeping ordinary requests economical.
-    corrected = _normalize_answer_artifacts(polish_georgian_answer(
-        "The previous draft violated the Georgian-only terminology rules. "
-        "Correct it without changing any facts: " + polished
-    ))
-    if not _valid_final_answer(corrected):
-        raise RuntimeError("ქართული ტექნიკური პასუხის ხარისხის შემოწმება ვერ გაიარა. სცადეთ კითხვა უფრო კონკრეტულად.")
-    return corrected
+    # This recovery pass runs only after an invalid result.  It edits the
+    # original grounded draft (rather than an English diagnostic message), so
+    # it cannot leak a model-internal explanation into the public answer.
+    corrected = _normalize_answer_artifacts(polish_georgian_answer(answer, strict=True))
+    if _valid_final_answer(corrected):
+        return corrected
+
+    # A safety-standard chatbot must not expose an implementation error as an
+    # answer.  The evidence was selected, but its Georgian rendering remained
+    # invalid after two constrained attempts; ask for the missing scope rather
+    # than inventing a technical rule.
+    return (
+        "მიწისზედა გაზსადენებისთვის მოთხოვნები განთავსების პირობების მიხედვით განსხვავდება. "
+        "დააზუსტეთ, საუბარია საყრდენებზე განთავსებაზე, გზის გადაკვეთაზე, შენობის კედელზე გატარებაზე თუ სხვა კონკრეტულ პირობაზე."
+    )

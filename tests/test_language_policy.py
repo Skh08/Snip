@@ -31,6 +31,13 @@ class LanguagePolicyTests(TestCase):
             "პ. 4.22: 0,6 მპა.",
         )
 
+    def test_scope_request_is_valid_georgian_output(self) -> None:
+        fallback = (
+            "მიწისზედა გაზსადენებისთვის მოთხოვნები განთავსების პირობების მიხედვით განსხვავდება. "
+            "დააზუსტეთ, საუბარია საყრდენებზე განთავსებაზე, გზის გადაკვეთაზე, შენობის კედელზე გატარებაზე თუ სხვა კონკრეტულ პირობაზე."
+        )
+        self.assertTrue(_valid_final_answer(fallback))
+
     @patch("app.semantic.OpenAI")
     @patch.dict("os.environ", {"OPENAI_API_KEY": "  test-key\n"}, clear=False)
     def test_client_strips_surrounding_secret_whitespace(self, openai_mock) -> None:
