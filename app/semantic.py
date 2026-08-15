@@ -28,6 +28,11 @@ Use these exact Georgian forms when the corresponding Russian concept appears:
 - давление газа = გაზის წნევა
 - подземный газопровод = მიწისქვეშა გაზსადენი
 - надземный газопровод = მიწისზედა გაზსადენი
+- транзитная прокладка = ტრანზიტული გატარება
+- по стенам зданий = შენობების კედლებზე
+- детские учреждения = საბავშვო დაწესებულებები
+- газоснабжение = გაზმომარაგება
+- не допускается = დაუშვებელია
 - проектирование = დაპროექტება
 - прокладка = დაგება
 - футляр = დამცავი გარსაცმი
@@ -174,6 +179,7 @@ def answer_question(question: str, sources: list[SearchHit]) -> str:
                       "Do not add a heading, a source line, labels, Markdown, Russian words, or facts not in evidence. "
                       "Keep every number, unit, limitation, and condition exact. Address only the question asked. "
                       "If the user's place, object, or condition is not explicitly named in the evidence, do not treat it as an exact match; state the evidence's actual scope. "
+                      "If a broad question asks whether gas supply is allowed but the evidence only restricts a route, pressure, wall, or other specific condition, distinguish that narrow restriction from a general prohibition. "
                       "If evidence is insufficient, say this plainly in Georgian.\n\n"
                       + GEORGIAN_TECHNICAL_GLOSSARY),
         input=f"Question: {question}\n\nEvidence:\n{evidence}",
