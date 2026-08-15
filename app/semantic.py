@@ -177,7 +177,9 @@ def polish_georgian_answer(draft: str) -> str:
 def _valid_final_answer(answer: str) -> bool:
     """Never show malformed mixed-script technical prose to a visitor."""
     normalized = answer.casefold()
-    return bool(answer) and not FOREIGN_LETTERS.search(answer) and not any(
+    # The temperature symbol °C is an internationally standard unit, not prose.
+    script_checked = answer.replace("°C", "").replace("°С", "")
+    return bool(answer) and not FOREIGN_LETTERS.search(script_checked) and not any(
         term in normalized for term in FORBIDDEN_GEORGIAN_OUTPUT
     )
 
