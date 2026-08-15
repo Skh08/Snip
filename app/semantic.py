@@ -173,6 +173,7 @@ def answer_question(question: str, sources: list[SearchHit]) -> str:
                       "Return exactly one short, clear professional paragraph of one to three sentences. "
                       "Do not add a heading, a source line, labels, Markdown, Russian words, or facts not in evidence. "
                       "Keep every number, unit, limitation, and condition exact. Address only the question asked. "
+                      "If the user's place, object, or condition is not explicitly named in the evidence, do not treat it as an exact match; state the evidence's actual scope. "
                       "If evidence is insufficient, say this plainly in Georgian.\n\n"
                       + GEORGIAN_TECHNICAL_GLOSSARY),
         input=f"Question: {question}\n\nEvidence:\n{evidence}",

@@ -33,6 +33,7 @@ def parse_docx(path: Path) -> list[Chunk]:
     chunks: list[Chunk] = []
     section: str | None = None
     active_table: str | None = None
+    active_paragraph: str | None = None
     ordinal = 0
 
     for raw_paragraph in document.paragraphs:
@@ -42,11 +43,16 @@ def parse_docx(path: Path) -> list[Chunk]:
         if SECTION_RE.match(text) or APPENDIX_RE.match(text):
             section = text
             active_table = None
+            active_paragraph = None
         table_match = TABLE_RE.match(text)
         if table_match:
             active_table = f"Таблица {table_match.group(1)}"
         match = PARAGRAPH_RE.match(text)
-        paragraph = match.group(1) if match else None
+        if match:
+            active_paragraph = match.group(1)
+        # Word often places one regulatory provision in several paragraphs. Its
+        # continuation must retain the source number of the preceding provision.
+        paragraph = match.group(1) if match else active_paragraph
         # A numbered regulatory paragraph marks the end of a text-formatted table.
         if paragraph and not table_match:
             active_table = None
