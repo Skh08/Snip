@@ -2,6 +2,11 @@ const form = document.querySelector('#question-form');
 const input = document.querySelector('#question');
 const conversation = document.querySelector('#conversation');
 
+const welcome = conversation.querySelector('.message.assistant');
+if (welcome) {
+  welcome.textContent = 'დასვით კითხვა ქართულად. პასუხთან ერთად გამოჩნდება შესაბამისი პუნქტი ან ცხრილი.';
+}
+
 function addMessage(text, type, sources = []) {
   const item = document.createElement('div');
   item.className = `message ${type}`;

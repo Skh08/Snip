@@ -13,6 +13,7 @@ from .semantic import answer_question, select_relevant_sources, semantic_search
 BASE_DIR = Path(__file__).resolve().parents[1]
 KNOWLEDGE_BASE = BASE_DIR / "data" / "knowledge_base.json"
 EMBEDDINGS = BASE_DIR / "data" / "embeddings.json"
+HTML_SOURCE = BASE_DIR / "data" / "snip_2.04.08-87.html"
 app = FastAPI(title="СНиП Chatbot API", version="0.1.0")
 STATIC_DIR = BASE_DIR / "static"
 
@@ -24,7 +25,19 @@ def homepage() -> FileResponse:
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "indexed_chunks": len(load_chunks(KNOWLEDGE_BASE))}
+    chunks = load_chunks(KNOWLEDGE_BASE)
+    verified = sum(chunk.verification_status == "confirmed_by_web" for chunk in chunks)
+    different = sum(chunk.verification_status == "web_text_differs" for chunk in chunks)
+    return {
+        "status": "ok",
+        "indexed_chunks": len(chunks),
+        "secondary_source": {
+            "url": "https://files.stroyinf.ru/Data1/2/2013/index.htm",
+            "local_copy_available": HTML_SOURCE.exists(),
+            "paragraphs_confirmed": verified,
+            "paragraphs_with_text_differences": different,
+        },
+    }
 
 
 @app.post("/search", response_model=list[SearchHit])

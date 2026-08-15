@@ -10,7 +10,7 @@ from docx import Document
 from .models import Chunk
 
 # Chapter headings are e.g. "4. НАРУЖНЫЕ ГАЗОПРОВОДЫ"; do not treat "4.17." as a heading.
-SECTION_RE = re.compile(r"^\d+\.\s+\D.+")
+SECTION_RE = re.compile(r"^\d+\.\s+[А-ЯЁ][А-ЯЁ0-9\s,;:()«»\"*\-]+$")
 PARAGRAPH_RE = re.compile(r"^(\d+(?:\.\d+)+)\.?\s*(.*)$")
 APPENDIX_RE = re.compile(r"^(?:Приложение|ПРИЛОЖЕНИЕ)\b", re.IGNORECASE)
 TABLE_RE = re.compile(r"^(?:Таблица|ТАБЛИЦА)\s+(\d+)", re.IGNORECASE)
@@ -46,13 +46,14 @@ def parse_docx(path: Path) -> list[Chunk]:
             active_paragraph = None
         table_match = TABLE_RE.match(text)
         if table_match:
+            active_paragraph = None
             active_table = f"Таблица {table_match.group(1)}"
         match = PARAGRAPH_RE.match(text)
         if match:
             active_paragraph = match.group(1)
         # Word often places one regulatory provision in several paragraphs. Its
         # continuation must retain the source number of the preceding provision.
-        paragraph = match.group(1) if match else active_paragraph
+        paragraph = match.group(1) if match else (None if active_table else active_paragraph)
         # A numbered regulatory paragraph marks the end of a text-formatted table.
         if paragraph and not table_match:
             active_table = None

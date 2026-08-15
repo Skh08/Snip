@@ -40,3 +40,17 @@ With Docker Compose, the `data` folder is persisted on the host. On its first st
 The Word document remains the authoritative text. The published HTML transcription is a secondary verifier: matching numbered provisions are compared after layout/OCR-spacing normalization, the verification result is stored as metadata, and HTML is used only as a fallback when a numbered Word provision is absent. It never replaces Word wording.
 
 Every answer follows a strict one-paragraph Georgian template. A mandatory glossary defines the technical forms used for gas pipelines, installation depth, pipe crown level, outdoor design temperature, pressure, and related terms. A separate final Georgian-language pass improves wording while being instructed not to alter facts, figures, units, conditions, or scope. Sources are rendered by the interface, not invented by the model.
+
+## Verification
+
+Run the no-cost structural checks inside the container:
+
+```powershell
+docker compose run --rm --no-deps snip-chatbot python -m unittest discover -s tests -v
+```
+
+After the service is running, run the full source-and-language smoke test. The `--live` mode sends three short evaluation questions to the configured model:
+
+```powershell
+docker compose exec snip-chatbot python scripts/smoke_test.py --live
+```

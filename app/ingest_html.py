@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 from .ingest import APPENDIX_RE, PARAGRAPH_RE, SECTION_RE, _clean, _label
 from .models import Chunk
@@ -13,7 +13,8 @@ SOURCE_URL = "https://files.stroyinf.ru/Data1/2/2013/index.htm"
 
 
 def download_html(destination: Path, url: str = SOURCE_URL) -> None:
-    with urlopen(url, timeout=30) as response:  # nosec B310 - fixed public source URL
+    request = Request(url, headers={"User-Agent": "SNIP-Source-Verification/1.0"})
+    with urlopen(request, timeout=30) as response:  # nosec B310 - fixed public source URL
         content = response.read()
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_bytes(content)

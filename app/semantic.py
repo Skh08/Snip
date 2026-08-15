@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import re
 from pathlib import Path
 
 from openai import OpenAI
@@ -13,6 +14,10 @@ from .models import Chunk, SearchHit
 EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL", "gpt-5-mini")
 MAX_OUTPUT_TOKENS = int(os.getenv("OPENAI_MAX_OUTPUT_TOKENS", "600"))
+FOREIGN_LETTERS = re.compile(r"[A-Za-zА-Яа-яЁё]")
+FORBIDDEN_GEORGIAN_OUTPUT = (
+    "მთელყოფილად", "საბითუმო", "საქლიმატო წერტილი", "ნაძარცავი", "ტუფი",
+)
 
 # Mandatory renderings for common Russian terms in this standard.  The final
 # language pass is deliberately separate from evidence selection and cannot add facts.
@@ -28,11 +33,14 @@ Use these exact Georgian forms when the corresponding Russian concept appears:
 - давление газа = გაზის წნევა
 - подземный газопровод = მიწისქვეშა გაზსადენი
 - надземный газопровод = მიწისზედა გაზსადენი
+- наружный газопровод = გარე გაზსადენი
 - транзитная прокладка = ტრანზიტული გატარება
 - по стенам зданий = შენობების კედლებზე
 - детские учреждения = საბავშვო დაწესებულებები
 - газоснабжение = გაზმომარაგება
 - не допускается = დაუშვებელია
+- МПа = მპა
+- мм = მმ
 - проектирование = დაპროექტება
 - прокладка = დაგება
 - футляр = დამცავი გარსაცმი
@@ -166,6 +174,14 @@ def polish_georgian_answer(draft: str) -> str:
     return polished
 
 
+def _valid_final_answer(answer: str) -> bool:
+    """Never show malformed mixed-script technical prose to a visitor."""
+    normalized = answer.casefold()
+    return bool(answer) and not FOREIGN_LETTERS.search(answer) and not any(
+        term in normalized for term in FORBIDDEN_GEORGIAN_OUTPUT
+    )
+
+
 # Re-declare the public answer function after the language editor so the response
 # pipeline is always evidence generation followed by terminology enforcement.
 def answer_question(question: str, sources: list[SearchHit]) -> str:
@@ -177,7 +193,7 @@ def answer_question(question: str, sources: list[SearchHit]) -> str:
         instructions=("Answer only from the supplied SNIP evidence. Write in Georgian only. "
                       "Return exactly one short, clear professional paragraph of one to three sentences. "
                       "Do not add a heading, a source line, labels, Markdown, Russian words, or facts not in evidence. "
-                      "Keep every number, unit, limitation, and condition exact. Address only the question asked. "
+                      "Keep every number, decimal separator, unit, limitation, and condition exact. Do not invent parenthetical explanations. Address only the question asked. "
                       "If the user's place, object, or condition is not explicitly named in the evidence, do not treat it as an exact match; state the evidence's actual scope. "
                       "If a broad question asks whether gas supply is allowed but the evidence only restricts a route, pressure, wall, or other specific condition, distinguish that narrow restriction from a general prohibition. "
                       "If evidence is insufficient, say this plainly in Georgian.\n\n"
@@ -187,4 +203,15 @@ def answer_question(question: str, sources: list[SearchHit]) -> str:
     answer = response.output_text.strip()
     if not answer:
         raise RuntimeError("ქართული პასუხის გენერირება ვერ შესრულდა. სცადეთ თავიდან.")
-    return polish_georgian_answer(answer)
+    polished = polish_georgian_answer(answer)
+    if _valid_final_answer(polished):
+        return polished
+    # A second correction is used only when the first language pass produced
+    # malformed mixed-script text, keeping ordinary requests economical.
+    corrected = polish_georgian_answer(
+        "The previous draft violated the Georgian-only terminology rules. "
+        "Correct it without changing any facts: " + polished
+    )
+    if not _valid_final_answer(corrected):
+        raise RuntimeError("ქართული ტექნიკური პასუხის ხარისხის შემოწმება ვერ გაიარა. სცადეთ კითხვა უფრო კონკრეტულად.")
+    return corrected
