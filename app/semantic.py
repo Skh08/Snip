@@ -194,6 +194,38 @@ def _valid_final_answer(answer: str) -> bool:
     )
 
 
+def _normalize_answer_artifacts(answer: str) -> str:
+    """Repair isolated source labels and international-unit spellings only.
+
+    This is deliberately narrow: it never translates sentences or adds facts.
+    It prevents an otherwise sound Georgian answer from being rejected merely
+    because a model preserved a source marker or a unit in its Russian/Latin form.
+    """
+    normalized = answer.strip()
+    normalized = re.sub(r"^\s*ციტირებული მტკიცებულების მიხედვით\s*[,.:—-]*\s*", "", normalized, flags=re.I)
+    replacements = {
+        "СНиП": "სნიპ",
+        "пп.": "პპ.",
+        "п.": "პ.",
+        "МПа": "მპა",
+        "МПА": "მპა",
+        "MPa": "მპა",
+        "MPA": "მპა",
+        "кПа": "კპა",
+        "КПа": "კპა",
+        "kPa": "კპა",
+        "KPa": "კპა",
+        "м³": "მ³",
+        "m³": "მ³",
+        "м²": "მ²",
+        "m²": "მ²",
+    }
+    for source, replacement in replacements.items():
+        normalized = normalized.replace(source, replacement)
+    normalized = re.sub(r"(?<=\d)\s+[мm](?=$|[.,;:)])", " მ", normalized)
+    return normalized
+
+
 # Re-declare the public answer function after the language editor so the response
 # pipeline is always evidence generation followed by terminology enforcement.
 def answer_question(question: str, sources: list[SearchHit]) -> str:
@@ -216,15 +248,15 @@ def answer_question(question: str, sources: list[SearchHit]) -> str:
     answer = response.output_text.strip()
     if not answer:
         raise RuntimeError("ქართული პასუხის გენერირება ვერ შესრულდა. სცადეთ თავიდან.")
-    polished = polish_georgian_answer(answer)
+    polished = _normalize_answer_artifacts(polish_georgian_answer(answer))
     if _valid_final_answer(polished):
         return polished
     # A second correction is used only when the first language pass produced
     # malformed mixed-script text, keeping ordinary requests economical.
-    corrected = polish_georgian_answer(
+    corrected = _normalize_answer_artifacts(polish_georgian_answer(
         "The previous draft violated the Georgian-only terminology rules. "
         "Correct it without changing any facts: " + polished
-    )
+    ))
     if not _valid_final_answer(corrected):
         raise RuntimeError("ქართული ტექნიკური პასუხის ხარისხის შემოწმება ვერ გაიარა. სცადეთ კითხვა უფრო კონკრეტულად.")
     return corrected

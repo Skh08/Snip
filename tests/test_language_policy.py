@@ -2,7 +2,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from app.language import is_georgian_question, needs_clarification
-from app.semantic import _client, _valid_final_answer
+from app.semantic import _client, _normalize_answer_artifacts, _valid_final_answer
 
 
 class LanguagePolicyTests(TestCase):
@@ -24,6 +24,12 @@ class LanguagePolicyTests(TestCase):
     def test_ambiguous_kindergarten_question_requires_clarification(self) -> None:
         self.assertTrue(needs_clarification("საბავშვო ბაღებში გაზი შეიძლება?"))
         self.assertFalse(needs_clarification("საბავშვო ბაღში ტრანზიტული გაზსადენის გატარება შეიძლება?"))
+
+    def test_normalizes_only_known_non_georgian_artifacts(self) -> None:
+        self.assertEqual(
+            _normalize_answer_artifacts("ციტირებული მტკიცებულების მიხედვით, პ. 4.22: 0,6 MPa."),
+            "პ. 4.22: 0,6 მპა.",
+        )
 
     @patch("app.semantic.OpenAI")
     @patch.dict("os.environ", {"OPENAI_API_KEY": "  test-key\n"}, clear=False)
