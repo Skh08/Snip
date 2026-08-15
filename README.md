@@ -32,3 +32,5 @@ Open `http://127.0.0.1:8000` to use the chatbot. `GET /health` reports whether t
 ## Deployment
 
 The included `Dockerfile`, `docker-compose.yml`, and `railway.json` deploy the same document-grounded application locally and on Railway. Commit the Word source with the project, push to GitHub, then create a Railway project from that repository.
+
+With Docker Compose, the `data` folder is persisted on the host. On its first start with `OPENAI_API_KEY` configured, the container creates the knowledge base and multilingual embeddings automatically.
