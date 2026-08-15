@@ -24,7 +24,9 @@ form.addEventListener('submit', async event => {
   const button = form.querySelector('button'); button.disabled = true;
   try {
     const response = await fetch('/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query }) });
-    const data = await response.json();
+    const body = await response.text();
+    let data;
+    try { data = JSON.parse(body); } catch { data = { detail: body }; }
     addMessage(data.answer || data.detail || 'შეცდომა მოხდა.', 'assistant', data.sources || []);
   } catch { addMessage('სერვერთან კავშირი ვერ დამყარდა.', 'assistant'); }
   finally { button.disabled = false; input.focus(); }

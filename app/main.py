@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .models import ChatResponse, SearchRequest, SearchHit
@@ -12,6 +13,11 @@ KNOWLEDGE_BASE = BASE_DIR / "data" / "knowledge_base.json"
 EMBEDDINGS = BASE_DIR / "data" / "embeddings.json"
 app = FastAPI(title="СНиП Chatbot API", version="0.1.0")
 STATIC_DIR = BASE_DIR / "static"
+
+
+@app.get("/", include_in_schema=False)
+def homepage() -> FileResponse:
+    return FileResponse(STATIC_DIR / "index.html")
 
 
 @app.get("/health")
@@ -47,4 +53,4 @@ def chat(request: SearchRequest) -> ChatResponse:
     return ChatResponse(answer=answer, sources=sources, grounded=True)
 
 
-app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+app.mount("/assets", StaticFiles(directory=STATIC_DIR), name="assets")
