@@ -10,8 +10,9 @@ from openai import OpenAI
 
 from .models import Chunk, SearchHit
 
-EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-large")
+EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL", "gpt-5-mini")
+MAX_OUTPUT_TOKENS = int(os.getenv("OPENAI_MAX_OUTPUT_TOKENS", "400"))
 
 
 def _client() -> OpenAI:
@@ -51,6 +52,7 @@ def answer_question(question: str, sources: list[SearchHit]) -> str:
     evidence = "\n\n".join(f"[{item.chunk.source_label}]\n{item.chunk.text}" for item in sources)
     response = _client().responses.create(
         model=CHAT_MODEL,
+        max_output_tokens=MAX_OUTPUT_TOKENS,
         instructions=("Answer only from the supplied СНиП evidence. Answer in the user's language. "
                       "If the evidence is insufficient, say so plainly. Do not invent requirements or sources. "
                       "End with the exact bracketed source labels you used."),
