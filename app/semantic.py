@@ -52,9 +52,13 @@ Never use these malformed or irrelevant expressions: „მთელყოფი
 
 
 def _client() -> OpenAI:
-    if not os.getenv("OPENAI_API_KEY"):
+    # Secret managers and clipboard pastes can preserve a final newline.  HTTP
+    # header values cannot contain it, so normalize only surrounding whitespace
+    # before passing the key to the SDK.  The key itself is never logged.
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not api_key:
         raise RuntimeError("OPENAI_API_KEY is not configured")
-    return OpenAI()
+    return OpenAI(api_key=api_key)
 
 
 def build_embeddings(chunks: list[Chunk], destination: Path) -> int:

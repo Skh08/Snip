@@ -1,7 +1,8 @@
 from unittest import TestCase
+from unittest.mock import patch
 
 from app.language import is_georgian_question, needs_clarification
-from app.semantic import _valid_final_answer
+from app.semantic import _client, _valid_final_answer
 
 
 class LanguagePolicyTests(TestCase):
@@ -21,3 +22,9 @@ class LanguagePolicyTests(TestCase):
     def test_ambiguous_kindergarten_question_requires_clarification(self) -> None:
         self.assertTrue(needs_clarification("საბავშვო ბაღებში გაზი შეიძლება?"))
         self.assertFalse(needs_clarification("საბავშვო ბაღში ტრანზიტული გაზსადენის გატარება შეიძლება?"))
+
+    @patch("app.semantic.OpenAI")
+    @patch.dict("os.environ", {"OPENAI_API_KEY": "  test-key\n"}, clear=False)
+    def test_client_strips_surrounding_secret_whitespace(self, openai_mock) -> None:
+        _client()
+        openai_mock.assert_called_once_with(api_key="test-key")
