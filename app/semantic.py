@@ -73,14 +73,42 @@ def semantic_search(query: str, chunks: list[Chunk], embeddings_path: Path, limi
     return [SearchHit(score=round(score, 3), chunk=chunk) for score, chunk in ranked[:limit]]
 
 
+def select_relevant_sources(question: str, candidates: list[SearchHit], limit: int = 3) -> list[SearchHit]:
+    """Rerank candidates so unrelated nearby provisions never reach the answer prompt."""
+    candidate_text = "\n\n".join(
+        f"ID={item.chunk.id}\nSOURCE={item.chunk.source_label}\nTEXT={item.chunk.text}"
+        for item in candidates
+    )
+    response = _client().responses.create(
+        model=CHAT_MODEL,
+        reasoning={"effort": "minimal"},
+        max_output_tokens=200,
+        instructions=("You are a strict evidence selector for a Russian technical standard. "
+                      "Given a Georgian user question and candidate passages, choose only passages that directly answer it. "
+                      "Do not include general or merely related provisions. Choose one passage when one is sufficient. "
+                      f"Return only a JSON array of up to {limit} exact ID strings, with no Markdown or explanation."),
+        input=f"Question: {question}\n\nCandidates:\n{candidate_text}",
+    )
+    raw = response.output_text.strip().removeprefix("```json").removesuffix("```").strip()
+    try:
+        chosen_ids = json.loads(raw)
+    except json.JSONDecodeError:
+        return candidates[:1]
+    if not isinstance(chosen_ids, list):
+        return candidates[:1]
+    selected = [item for item in candidates if item.chunk.id in chosen_ids][:limit]
+    return selected or candidates[:1]
+
+
 def answer_question(question: str, sources: list[SearchHit]) -> str:
     evidence = "\n\n".join(f"[{item.chunk.source_label}]\n{item.chunk.text}" for item in sources)
     response = _client().responses.create(
         model=CHAT_MODEL,
         reasoning={"effort": "minimal"},
         max_output_tokens=MAX_OUTPUT_TOKENS,
-        instructions=("Answer only from the supplied СНиП evidence. Answer in the user's language. "
-                      "If the evidence is insufficient, say so plainly. Do not invent requirements or sources. "
+        instructions=("Answer only from the supplied СНиП evidence. Write concise, grammatical, professional Georgian. "
+                      "Use standard Georgian technical wording; do not transliterate Russian words and do not add facts. "
+                      "Address only what the question asks. If evidence is insufficient, say so plainly. "
                       "End with the exact bracketed source labels you used."),
         input=f"Question: {question}\n\nEvidence:\n{evidence}",
     )
