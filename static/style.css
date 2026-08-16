@@ -24,11 +24,11 @@ h1 { margin-bottom: 20px; color: #17342a; font-family: Georgia, "Times New Roman
 h1 em { color: #267457; font-style: normal; }
 .intro > p:last-child { max-width: 650px; margin: 0; color: #61746c; font-size: 1rem; line-height: 1.7; }
 
-.workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(230px, 290px); gap: 24px; align-items: start; }
+.workspace { max-width: 850px; margin: clamp(34px, 6vw, 72px) auto 0; }
 .chat-panel { padding: clamp(20px, 3.2vw, 34px); border: 1px solid #dce6de; border-radius: 20px; background: #fff; box-shadow: 0 18px 48px rgba(29, 63, 48, .07); }
 .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; margin-bottom: 25px; }
 .panel-kicker { margin-bottom: 5px; color: #348065; }
-h2 { margin-bottom: 0; color: #1d372e; font-size: clamp(1.2rem, 2vw, 1.45rem); letter-spacing: -.03em; }
+.panel-heading h1 { margin: 0; color: #1d372e; font-family: inherit; font-size: clamp(1.25rem, 2vw, 1.5rem); font-weight: 750; letter-spacing: -.03em; line-height: 1.2; }
 .step-count { color: #846a35; border-color: #eadfbd; background: #fffcf3; white-space: nowrap; }
 
 #conversation { display: grid; gap: 14px; min-height: 248px; max-height: 520px; padding: 2px 2px 8px; overflow-y: auto; scroll-behavior: smooth; }
@@ -57,20 +57,6 @@ form button[type="submit"]:focus-visible, .examples button:focus-visible { outli
 form button:disabled { cursor: wait; background: #7da895; transform: none; }
 .input-help { margin: 8px 1px 0; color: #889991; font-size: .73rem; }
 
-.side-panel { display: grid; gap: 14px; }
-.document-card, .how-card { padding: 20px; border: 1px solid #dce6de; border-radius: 16px; background: #fff; }
-.document-card { background: #244d40; border-color: #244d40; color: #edf7f1; box-shadow: 0 14px 30px rgba(26, 63, 48, .12); }
-.document-card .card-label { color: #b8d3c5; }
-.document-card h2 { color: #fff; font-family: Georgia, serif; font-size: 1.4rem; font-weight: 500; }
-.document-card > p:not(.card-label) { margin-bottom: 14px; color: #c7ded2; font-size: .85rem; }
-.card-rule { height: 1px; margin: 0 0 14px; background: rgba(232, 248, 239, .2); }
-.document-card span { display: inline-flex; align-items: center; gap: 8px; color: #cce3d6; font-size: .76rem; }
-.verify-dot { background: #7ee0ac; box-shadow: 0 0 0 3px rgba(126, 224, 172, .15); }
-.how-card { background: #fcfdfb; }
-.how-card ol { display: grid; gap: 15px; margin: 0; padding: 0; list-style: none; }
-.how-card li { display: grid; grid-template-columns: 27px 1fr; gap: 9px; color: #52675e; font-size: .8rem; line-height: 1.45; }
-.how-card li span { color: #9b7b3c; font-size: .65rem; font-weight: 800; letter-spacing: .04em; }
-.side-note { margin: 1px 3px; color: #788981; font-size: .75rem; line-height: 1.5; }
 
 .typing { display: inline-flex; gap: 4px; align-items: center; min-height: 20px; }
 .typing span { width: 6px; height: 6px; border-radius: 50%; background: #75a18f; animation: typing 1s infinite ease-in-out; }
@@ -78,5 +64,4 @@ form button:disabled { cursor: wait; background: #7da895; transform: none; }
 @keyframes message-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes typing { 0%, 60%, 100% { transform: translateY(0); opacity: .45; } 30% { transform: translateY(-4px); opacity: 1; } }
 
-@media (max-width: 820px) { .workspace { grid-template-columns: 1fr; } .side-panel { grid-template-columns: 1fr 1fr; } .side-note { grid-column: 1 / -1; } }
-@media (max-width: 600px) { .app-shell { padding: 14px 15px 36px; } .site-header { min-height: 45px; } .language-note { padding: 6px 8px; font-size: .68rem; } .intro { padding: 44px 0 30px; } .workspace { gap: 16px; } .chat-panel { padding: 19px 16px; border-radius: 16px; } .panel-heading { margin-bottom: 20px; } .step-count { display: none; } #conversation { min-height: 235px; } .input-row { display: grid; } form button[type="submit"] { min-height: 46px; } .message { max-width: 95%; } .side-panel { grid-template-columns: 1fr; } .side-note { grid-column: auto; } }
+@media (max-width: 600px) { .app-shell { padding: 14px 15px 36px; } .site-header { min-height: 45px; } .language-note { padding: 6px 8px; font-size: .68rem; } .workspace { margin-top: 30px; } .chat-panel { padding: 19px 16px; border-radius: 16px; } .panel-heading { margin-bottom: 20px; } .step-count { display: none; } #conversation { min-height: 235px; } .input-row { display: grid; } form button[type="submit"] { min-height: 46px; } .message { max-width: 95%; } }
