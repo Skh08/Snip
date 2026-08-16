@@ -29,3 +29,16 @@ class HybridSearchTests(TestCase):
         lexical = [SearchHit(score=12.0, chunk=target)]
         hits = fuse_search_hits(semantic, lexical, 2)
         self.assertEqual(hits[0].chunk.id, "target")
+
+    def test_keyword_search_prefers_numbered_rule_over_heading(self) -> None:
+        heading = _chunk("heading", 1, "Надземные и наземные газопроводы")
+        rule = _chunk(
+            "rule", 2,
+            "4.22. Надземные газопроводы следует прокладывать на отдельно стоящих опорах.",
+            "4.22",
+        )
+        unrelated = _chunk("unrelated", 3, "Дополнительные требования к системам газоснабжения")
+
+        hits = keyword_search("требования надземных газопроводов", [heading, rule, unrelated], 3)
+
+        self.assertEqual(hits[0].chunk.id, "rule")

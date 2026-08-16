@@ -15,6 +15,11 @@
     "expected_answer_terms": ["0,35"]
   },
   {
+    "question": "რა მოთხოვნებია მიწისზედა გაზსადენებისთვის?",
+    "expected_source": "п. 4.22",
+    "expected_answer_terms": ["არაწვად"]
+  },
+  {
     "question": "საბავშვო ბაღში ტრანზიტული გაზსადენის გატარება დასაშვებია?",
     "expected_source": "п. 4.22",
     "expected_answer_terms": ["დაუშვებელია"]
