@@ -12,9 +12,14 @@ from openai import OpenAI
 from .models import Chunk, SearchHit
 from .search import fuse_search_hits, keyword_search
 
-EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
-CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL", "gpt-5-mini")
-MAX_OUTPUT_TOKENS = int(os.getenv("OPENAI_MAX_OUTPUT_TOKENS", "600"))
+# Retrieval needs fast, inexpensive multilingual reasoning; final Georgian
+# wording needs stronger reasoning because an omitted exception or condition in
+# a standard is a quality failure. Keeping these calls separate limits the
+# expensive model to the visitor-facing answer.
+EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-large")
+ROUTING_MODEL = os.getenv("OPENAI_ROUTING_MODEL", "gpt-5.6-luna")
+ANSWER_MODEL = os.getenv("OPENAI_ANSWER_MODEL", "gpt-5.6-terra")
+MAX_OUTPUT_TOKENS = int(os.getenv("OPENAI_MAX_OUTPUT_TOKENS", "800"))
 FOREIGN_LETTERS = re.compile(r"[A-Za-zА-Яа-яЁё]")
 FORBIDDEN_GEORGIAN_OUTPUT = (
     "მთელყოფილად", "საბითუმო", "საქლიმატო წერტილი", "ნაძარცავი", "ტუფი",
@@ -98,10 +103,20 @@ def build_embeddings(chunks: list[Chunk], destination: Path) -> int:
     return len(vectors)
 
 
+def embeddings_match_current_model(path: Path) -> bool:
+    """Prevent a new query vector model from being mixed with old index vectors."""
+    if not path.exists():
+        return False
+    try:
+        return json.loads(path.read_text(encoding="utf-8")).get("model") == EMBEDDING_MODEL
+    except (OSError, json.JSONDecodeError):
+        return False
+
+
 def translate_to_russian(question: str) -> str:
     """Make Russian retrieval reliable when the visitor asks in Georgian."""
     response = _client().responses.create(
-        model=CHAT_MODEL,
+        model=ROUTING_MODEL,
         reasoning={"effort": "minimal"},
         max_output_tokens=200,
         instructions=("Translate the question into Russian for searching a Russian technical standard. "
@@ -118,6 +133,8 @@ def translate_to_russian(question: str) -> str:
 def _vector_search(query: str, chunks: list[Chunk], embeddings_path: Path, limit: int) -> tuple[str, list[SearchHit]]:
     """Return the translated query and vector-only candidates for evaluation."""
     stored = json.loads(embeddings_path.read_text(encoding="utf-8"))
+    if stored.get("model") != EMBEDDING_MODEL:
+        raise RuntimeError("ემბედინგების მოდელი შეიცვალა; საჭიროა ინდექსის თავიდან აგება.")
     vectors = stored["vectors"]
     if len(vectors) != len(chunks):
         raise RuntimeError("Embeddings do not match the knowledge base; rebuild them.")
@@ -167,7 +184,7 @@ def select_relevant_sources(question: str, candidates: list[SearchHit], limit: i
         for item in candidates
     )
     response = _client().responses.create(
-        model=CHAT_MODEL,
+        model=ROUTING_MODEL,
         reasoning={"effort": "minimal"},
         max_output_tokens=200,
         instructions=("You are a strict evidence selector for a Russian technical standard. "
@@ -209,7 +226,7 @@ def select_related_sources(question: str, candidates: list[SearchHit], limit: in
         for item in candidates
     )
     response = _client().responses.create(
-        model=CHAT_MODEL,
+        model=ROUTING_MODEL,
         reasoning={"effort": "minimal"},
         max_output_tokens=160,
         instructions=(
@@ -265,7 +282,7 @@ def _evidence_text(sources: list[SearchHit]) -> str:
 def _legacy_answer_question(question: str, sources: list[SearchHit]) -> str:
     evidence = "\n\n".join(f"[{item.chunk.source_label}]\n{item.chunk.text}" for item in sources)
     response = _client().responses.create(
-        model=CHAT_MODEL,
+        model=ANSWER_MODEL,
         reasoning={"effort": "minimal"},
         max_output_tokens=MAX_OUTPUT_TOKENS,
         instructions=("Answer only from the supplied СНиП evidence. Write concise, grammatical, professional Georgian. "
@@ -290,7 +307,7 @@ def polish_georgian_answer(draft: str, *, strict: bool = False) -> str:
             "Cyrillic letters, source markers, or brackets."
         )
     response = _client().responses.create(
-        model=CHAT_MODEL,
+        model=ANSWER_MODEL,
         reasoning={"effort": "minimal"},
         max_output_tokens=MAX_OUTPUT_TOKENS,
         instructions=("You are the final Georgian technical-language editor for a safety standard. "
@@ -356,7 +373,7 @@ def _normalize_answer_artifacts(answer: str) -> str:
 def answer_question(question: str, sources: list[SearchHit]) -> str:
     evidence = _evidence_text(sources)
     response = _client().responses.create(
-        model=CHAT_MODEL,
+        model=ANSWER_MODEL,
         reasoning={"effort": "minimal"},
         max_output_tokens=MAX_OUTPUT_TOKENS,
         instructions=("Answer only from the supplied SNIP evidence. Write in Georgian only. "
@@ -397,7 +414,7 @@ def answer_related_context(question: str, sources: list[SearchHit]) -> str:
     """Translate related provisions without converting them into a decision."""
     evidence = _evidence_text(sources)
     response = _client().responses.create(
-        model=CHAT_MODEL,
+        model=ANSWER_MODEL,
         reasoning={"effort": "minimal"},
         max_output_tokens=MAX_OUTPUT_TOKENS,
         instructions=(

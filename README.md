@@ -25,7 +25,9 @@ The web copy is never used to silently replace a Word passage: its chunks are ma
 
 ## Multilingual questions
 
-The chatbot accepts Georgian questions only. It translates the question into a Russian search query, then retrieves against both language forms before generating a grounded Georgian answer. The runtime first merges Word fragments into one complete, numbered provision and retains its chapter and subsection; headings and partial continuations are never used as answer evidence. Questions without Georgian script receive a Georgian instruction to ask in Georgian. The default 600-token answer cap keeps usage predictable. Set `OPENAI_API_KEY` only in `.env` locally or Railway Variables in production; never commit it.
+The chatbot accepts Georgian questions only. It translates the question into a Russian search query, then retrieves against both language forms before generating a grounded Georgian answer. The runtime first merges Word fragments into one complete, numbered provision and retains its chapter and subsection; headings and partial continuations are never used as answer evidence. Questions without Georgian script receive a Georgian instruction to ask in Georgian. The default 800-token answer cap keeps usage predictable. Set `OPENAI_API_KEY` only in `.env` locally or Railway Variables in production; never commit it.
+
+For the production quality profile, use `text-embedding-3-large` for the multilingual index, `gpt-5.6-luna` for Georgian-to-Russian retrieval and evidence selection, and `gpt-5.6-terra` only for the final Georgian answer. The two language-model roles are deliberately separate: routing remains economical while the public answer gets the stronger model. When `OPENAI_EMBEDDING_MODEL` changes, startup automatically rebuilds the vector index; it does not rebuild when the stored index already uses that model.
 
 Open `http://127.0.0.1:8000` to use the chatbot. `GET /health` reports whether the document has been indexed; `POST /search` exposes the retrieval layer for testing.
 
