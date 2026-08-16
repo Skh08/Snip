@@ -54,3 +54,21 @@ After the service is running, run the full source-and-language smoke test. The `
 ```powershell
 docker compose exec snip-chatbot python scripts/smoke_test.py --live
 ```
+
+## Retrieval quality checks
+
+Retrieval combines multilingual vector similarity with exact-text search over
+Russian section names, provision numbers, units, and values. The generated
+answer receives the selected provision together with its section context and
+continuation paragraphs from the same provision.
+
+The checked Georgian evaluation set is stored in `tests/evaluation_cases.json`.
+After the container is running, compare the original vector-only baseline with
+hybrid retrieval before accepting a retrieval change:
+
+```powershell
+docker compose exec snip-chatbot python scripts/compare_retrieval.py
+```
+
+The script stops with an error if hybrid retrieval finds fewer expected source
+provisions than the vector-only baseline.

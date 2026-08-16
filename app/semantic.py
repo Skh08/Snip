@@ -10,6 +10,7 @@ from pathlib import Path
 from openai import OpenAI
 
 from .models import Chunk, SearchHit
+from .search import fuse_search_hits, keyword_search
 
 EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL", "gpt-5-mini")
@@ -106,7 +107,8 @@ def translate_to_russian(question: str) -> str:
     return translated
 
 
-def semantic_search(query: str, chunks: list[Chunk], embeddings_path: Path, limit: int) -> list[SearchHit]:
+def _vector_search(query: str, chunks: list[Chunk], embeddings_path: Path, limit: int) -> tuple[str, list[SearchHit]]:
+    """Return the translated query and vector-only candidates for evaluation."""
     stored = json.loads(embeddings_path.read_text(encoding="utf-8"))
     vectors = stored["vectors"]
     if len(vectors) != len(chunks):
@@ -123,13 +125,30 @@ def semantic_search(query: str, chunks: list[Chunk], embeddings_path: Path, limi
             for query_vector in query_vectors
         )
     ranked = sorted(((cosine(vector), chunk) for vector, chunk in zip(vectors, chunks)), reverse=True, key=lambda item: item[0])
-    return [SearchHit(score=round(score, 3), chunk=chunk) for score, chunk in ranked[:limit]]
+    semantic_hits = [SearchHit(score=round(score, 3), chunk=chunk) for score, chunk in ranked[:limit]]
+    return russian_query, semantic_hits
+
+
+def vector_search(query: str, chunks: list[Chunk], embeddings_path: Path, limit: int) -> list[SearchHit]:
+    """The pre-hybrid vector-only baseline, retained for evaluation."""
+    _, hits = _vector_search(query, chunks, embeddings_path, limit)
+    return hits
+
+
+def semantic_search(query: str, chunks: list[Chunk], embeddings_path: Path, limit: int) -> list[SearchHit]:
+    """Hybrid retrieval: multilingual vectors plus exact Russian text matches."""
+    russian_query, semantic_hits = _vector_search(query, chunks, embeddings_path, max(24, limit * 3))
+    # The Russian query lets the sparse matcher find exact СНиП terms, numbers,
+    # and provision references that embeddings can otherwise blur together.
+    lexical_hits = keyword_search(f"{russian_query} {query}", chunks, max(24, limit * 3))
+    return fuse_search_hits(semantic_hits, lexical_hits, limit)
 
 
 def select_relevant_sources(question: str, candidates: list[SearchHit], limit: int = 3) -> list[SearchHit]:
     """Rerank candidates so unrelated nearby provisions never reach the answer prompt."""
     candidate_text = "\n\n".join(
-        f"ID={item.chunk.id}\nSOURCE={item.chunk.source_label}\nTEXT={item.chunk.text}"
+        f"ID={item.chunk.id}\nSECTION={item.chunk.section or 'not specified'}\n"
+        f"SOURCE={item.chunk.source_label}\nTEXT={item.chunk.text}"
         for item in candidates
     )
     response = _client().responses.create(
@@ -151,6 +170,36 @@ def select_relevant_sources(question: str, candidates: list[SearchHit], limit: i
         return candidates[:1]
     selected = [item for item in candidates if item.chunk.id in chosen_ids][:limit]
     return selected or candidates[:1]
+
+
+def expand_structured_context(sources: list[SearchHit], chunks: list[Chunk], limit: int = 6) -> list[SearchHit]:
+    """Include continuations of a selected regulatory provision as answer context.
+
+    The returned sources still retain the exact original source labels. This only
+    expands evidence for a provision that Word split across several paragraphs.
+    """
+    by_paragraph: dict[str, list[Chunk]] = {}
+    for chunk in chunks:
+        if chunk.paragraph:
+            by_paragraph.setdefault(chunk.paragraph, []).append(chunk)
+    expanded: list[SearchHit] = []
+    used_ids: set[str] = set()
+    for hit in sources:
+        candidates = [hit.chunk]
+        if hit.chunk.paragraph:
+            candidates = by_paragraph.get(hit.chunk.paragraph, candidates)
+        for chunk in candidates:
+            if chunk.id not in used_ids and len(expanded) < limit:
+                expanded.append(SearchHit(score=hit.score, chunk=chunk))
+                used_ids.add(chunk.id)
+    return expanded or sources
+
+
+def _evidence_text(sources: list[SearchHit]) -> str:
+    return "\n\n".join(
+        f"[{item.chunk.source_label}]\nSECTION: {item.chunk.section or 'not specified'}\n{item.chunk.text}"
+        for item in sources
+    )
 
 
 def _legacy_answer_question(question: str, sources: list[SearchHit]) -> str:
@@ -245,7 +294,7 @@ def _normalize_answer_artifacts(answer: str) -> str:
 # Re-declare the public answer function after the language editor so the response
 # pipeline is always evidence generation followed by terminology enforcement.
 def answer_question(question: str, sources: list[SearchHit]) -> str:
-    evidence = "\n\n".join(f"[{item.chunk.source_label}]\n{item.chunk.text}" for item in sources)
+    evidence = _evidence_text(sources)
     response = _client().responses.create(
         model=CHAT_MODEL,
         reasoning={"effort": "minimal"},

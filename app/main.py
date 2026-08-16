@@ -8,7 +8,13 @@ from fastapi.staticfiles import StaticFiles
 from .models import ChatResponse, SearchRequest, SearchHit
 from .language import about_document_answer, is_georgian_question, needs_clarification
 from .search import load_chunks, search
-from .semantic import ClarificationRequired, answer_question, select_relevant_sources, semantic_search
+from .semantic import (
+    ClarificationRequired,
+    answer_question,
+    expand_structured_context,
+    select_relevant_sources,
+    semantic_search,
+)
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 KNOWLEDGE_BASE = BASE_DIR / "data" / "knowledge_base.json"
@@ -72,6 +78,7 @@ def chat(request: SearchRequest) -> ChatResponse:
     try:
         candidates = semantic_search(request.query, chunks, EMBEDDINGS, 8)
         sources = select_relevant_sources(request.query, candidates)
+        sources = expand_structured_context(sources, chunks)
     except (RuntimeError, OpenAIError) as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
     # Cross-language embeddings often have lower cosine scores than same-language matches.

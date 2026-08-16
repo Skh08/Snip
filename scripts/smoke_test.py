@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import json
 import sys
+from pathlib import Path
 from urllib.request import Request, urlopen
 
 BASE_URL = "http://127.0.0.1:8000"
+EVALUATION_CASES = Path(__file__).resolve().parents[1] / "tests" / "evaluation_cases.json"
 
 
 def request(path: str, payload: dict | None = None) -> dict:
@@ -34,24 +36,27 @@ def main() -> None:
     if "--live" not in sys.argv:
         return
 
-    cases = (
-        ("რა არის პოლიეთილენის გაზსადენის ჩაღრმავების მინიმალური სიღრმე?", "п. 4.92", "1"),
-        ("რა მოთხოვნაა თავისუფალ ტერიტორიაზე დაბალ საყრდენებზე მოწყობილი მიწისზედა გაზსადენისთვის?", "п. 4.28", "0,35"),
-        ("საბავშვო ბაღებში ტრანზიტული გაზსადენის გატარება დასაშვებია?", "п. 4.22", "ტრანზიტ"),
-    )
-    for question, expected_source, expected_text in cases:
-        response = request("/chat", {"query": question})
+    cases = json.loads(EVALUATION_CASES.read_text(encoding="utf-8"))
+    for case in cases:
+        response = request("/chat", {"query": case["question"]})
         labels = [item["chunk"]["source_label"] for item in response["sources"]]
-        require(response["grounded"], f"not grounded: {question}")
-        require(expected_source in labels, f"wrong source for {question}: {labels}")
-        require(expected_text in response["answer"], f"missing expected wording for {question}: {response['answer']}")
-        print(f"PASS: {expected_source} — {response['answer']}")
+        require(response["grounded"], f"not grounded: {case['question']}")
+        require(case["expected_source"] in labels, f"wrong source for {case['question']}: {labels}")
+        for expected_text in case["expected_answer_terms"]:
+            require(expected_text in response["answer"], f"missing expected wording for {case['question']}: {response['answer']}")
+        print(f"PASS: {case['expected_source']} — {response['answer']}")
 
     ambiguous = request("/chat", {"query": "საბავშვო ბაღებში გაზი შეიძლება?"})
     require(not ambiguous["grounded"], "ambiguous kindergarten question must ask for clarification")
     require(not ambiguous["sources"], "clarification must not show a guessed source")
     require("დააზუსტეთ" in ambiguous["answer"], "clarification text is missing")
     print("PASS: ambiguous kindergarten question requests clarification")
+
+    orientation = request("/chat", {"query": "რა დოკუმენტია ეს?"})
+    require(not orientation["grounded"], "document orientation must not invoke RAG")
+    require(not orientation["sources"], "document orientation must not show a source")
+    require("გაზმომარაგების" in orientation["answer"], "document orientation answer is missing")
+    print("PASS: document orientation is answered directly")
 
 
 if __name__ == "__main__":
