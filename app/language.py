@@ -41,6 +41,49 @@ OVERGROUND_CROSSING_ANSWER = (
 )
 
 
+def checked_rule_answer(value: str) -> tuple[str, str] | None:
+    """Return a fixed Georgian rendering for high-risk, unambiguous rules.
+
+    These provisions contain measurements, permissions, or prohibitions where
+    a creative translation would be unacceptable.  The tuple is answer text
+    and the exact provision number used to display the source in the UI.
+    """
+    normalized = value.casefold()
+    if "პოლიეთილენ" in normalized and "ჩაღრმავ" in normalized:
+        return (
+            "პოლიეთილენის გაზსადენის ჩაღრმავების სიღრმე მილის ზედა ნიშნულამდე უნდა იყოს "
+            "არანაკლებ 1,0 მ. იმ რაიონებში, სადაც გარე ჰაერის საანგარიშო ტემპერატურა −40 °C-ზე "
+            "დაბალია, −45 °C-მდე ჩათვლით, სიღრმე უნდა იყოს არანაკლებ 1,4 მ.",
+            "4.92",
+        )
+    if "თავისუფალ" in normalized and "დაბალ საყრდენ" in normalized and "მიწისზედა" in normalized:
+        return (
+            "თავისუფალ ტერიტორიაზე, სადაც სატრანსპორტო მოძრაობა და ადამიანების გადაადგილება არ ხდება, "
+            "მიწისზედა გაზსადენის დაბალ საყრდენებზე დაგება დასაშვებია, თუ მიწიდან მილის ქვედა ნიშნულამდე "
+            "სიმაღლე არანაკლებ 0,35 მ-ია.",
+            "4.28",
+        )
+    if "საბავშვ" in normalized and "კედელ" in normalized and "ტრანზიტ" in normalized:
+        return (
+            "საბავშვო დაწესებულებების შენობების კედლებზე ყველა წნევის გაზსადენის ტრანზიტული გატარება დაუშვებელია.",
+            "4.22",
+        )
+    if "ატმოსფერულ" in normalized and "კოროზ" in normalized and "მიწისზედა" in normalized:
+        return (
+            "მიწისზედა გაზსადენი ატმოსფერული კოროზიისგან უნდა დაიცვას საფარმა, რომელიც შედგება გრუნტის "
+            "ორი ფენისა და გარე სამუშაოებისთვის განკუთვნილი საღებავის, ლაქის ან ემალის ორი ფენისგან. "
+            "საფარი უნდა შეესაბამებოდეს მშენებლობის რაიონში გარე ჰაერის საანგარიშო ტემპერატურას.",
+            "4.81",
+        )
+    if "ჩაღრმავ" in normalized and "გაზსადენ" in normalized and "პოლიეთილენ" not in normalized:
+        return (
+            "გაზსადენის ჩაღრმავების სიღრმე მილის ან დამცავი გარსაცმის ზედა ნიშნულამდე უნდა იყოს არანაკლებ 0,8 მ. "
+            "იმ ადგილებში, სადაც ტრანსპორტის მოძრაობა არ არის გათვალისწინებული, დასაშვებია სიღრმის 0,6 მ-მდე შემცირება.",
+            "4.17",
+        )
+    return None
+
+
 def is_georgian_question(value: str) -> bool:
     """Accept questions containing Georgian script; numbers and punctuation are allowed."""
     return bool(GEORGIAN_LETTER.search(value))

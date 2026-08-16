@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from .models import ChatResponse, SearchRequest, SearchHit
 from .language import (
     about_document_answer,
+    checked_rule_answer,
     is_georgian_question,
     needs_clarification,
     overground_compound_clarification,
@@ -86,6 +87,12 @@ def chat(request: SearchRequest) -> ChatResponse:
     chunks = load_chunks(KNOWLEDGE_BASE)
     if not chunks:
         raise HTTPException(status_code=503, detail="Knowledge base is not built. Run the ingestion command first.")
+    checked_rule = checked_rule_answer(request.query)
+    if checked_rule:
+        answer, paragraph = checked_rule
+        sources = provision_source(paragraph, chunks)
+        if usable_evidence(sources):
+            return ChatResponse(answer=answer, sources=sources, grounded=True)
     crossing_answer = overground_crossing_answer(request.query)
     if crossing_answer:
         sources = provision_source("4.57", chunks)

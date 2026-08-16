@@ -4,6 +4,7 @@ from unittest.mock import patch
 from app.language import (
     ABOUT_DOCUMENT_ANSWER,
     about_document_answer,
+    checked_rule_answer,
     is_georgian_question,
     needs_clarification,
     overground_compound_clarification,
@@ -47,6 +48,20 @@ class LanguagePolicyTests(TestCase):
         self.assertIsNotNone(answer)
         self.assertIn("სიმაღლე", answer)
         self.assertIsNone(overground_crossing_answer("მიწისქვეშა გაზსადენის ტრამვაის ლიანდაგზე გადაკვეთა"))
+
+    def test_checked_rules_preserve_permissions_prohibitions_and_measurements(self) -> None:
+        low_support = checked_rule_answer("თავისუფალ ტერიტორიაზე დაბალ საყრდენზე რა სიმაღლეზე შეიძლება მიწისზედა გაზსადენი?")
+        self.assertEqual(low_support[1], "4.28")
+        self.assertIn("დასაშვებია", low_support[0])
+        self.assertIn("მილის ქვედა ნიშნულამდე", low_support[0])
+
+        kindergarten = checked_rule_answer("შეიძლება საბავშვო დაწესებულების კედელზე ტრანზიტული გაზსადენის გატარება?")
+        self.assertEqual(kindergarten[1], "4.22")
+        self.assertIn("დაუშვებელია", kindergarten[0])
+
+        corrosion = checked_rule_answer("როგორ უნდა დაიცვას მიწისზედა გაზსადენი ატმოსფერული კოროზიისგან?")
+        self.assertEqual(corrosion[1], "4.81")
+        self.assertIn("გრუნტის ორი ფენისა", corrosion[0])
 
     def test_final_answer_must_not_contain_foreign_or_banned_words(self) -> None:
         self.assertTrue(_valid_final_answer("გაზსადენის ჩაღრმავების სიღრმე უნდა იყოს არანაკლებ 1,0 მ."))
