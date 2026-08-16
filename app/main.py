@@ -11,9 +11,10 @@ from .language import (
     is_georgian_question,
     needs_clarification,
     overground_compound_clarification,
+    overground_crossing_answer,
     overground_overview_answer,
 )
-from .search import broad_topic_sources, load_chunks, search
+from .search import broad_topic_sources, load_chunks, provision_source, search
 from .validation import usable_evidence
 from .semantic import (
     ClarificationRequired,
@@ -85,6 +86,11 @@ def chat(request: SearchRequest) -> ChatResponse:
     chunks = load_chunks(KNOWLEDGE_BASE)
     if not chunks:
         raise HTTPException(status_code=503, detail="Knowledge base is not built. Run the ingestion command first.")
+    crossing_answer = overground_crossing_answer(request.query)
+    if crossing_answer:
+        sources = provision_source("4.57", chunks)
+        if usable_evidence(sources):
+            return ChatResponse(answer=crossing_answer, sources=sources, grounded=True)
     overview_answer = overground_overview_answer(request.query)
     if overview_answer:
         sources = broad_topic_sources(request.query, chunks)

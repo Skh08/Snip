@@ -7,6 +7,7 @@ from app.language import (
     is_georgian_question,
     needs_clarification,
     overground_compound_clarification,
+    overground_crossing_answer,
     overground_overview_answer,
 )
 from app.semantic import ClarificationRequired, _client, _normalize_answer_artifacts, _valid_final_answer
@@ -40,6 +41,12 @@ class LanguagePolicyTests(TestCase):
                 "საყრდენებზე, ავტოგზის გადაკვეთაზე და კედელზე გატარებაზე"
             )
         )
+
+    def test_overground_crossing_uses_height_rule_not_underground_depth(self) -> None:
+        answer = overground_crossing_answer("მიწისზედა გაზსადენის ტრამვაის ლიანდაგზე გადაკვეთა")
+        self.assertIsNotNone(answer)
+        self.assertIn("სიმაღლე", answer)
+        self.assertIsNone(overground_crossing_answer("მიწისქვეშა გაზსადენის ტრამვაის ლიანდაგზე გადაკვეთა"))
 
     def test_final_answer_must_not_contain_foreign_or_banned_words(self) -> None:
         self.assertTrue(_valid_final_answer("გაზსადენის ჩაღრმავების სიღრმე უნდა იყოს არანაკლებ 1,0 მ."))

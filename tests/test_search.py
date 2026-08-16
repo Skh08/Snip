@@ -3,7 +3,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from app.models import Chunk, SearchHit
-from app.search import broad_topic_sources, fuse_search_hits, keyword_search
+from app.search import broad_topic_sources, fuse_search_hits, keyword_search, provision_source
 from app.semantic import select_relevant_sources
 
 
@@ -76,3 +76,10 @@ class HybridSearchTests(TestCase):
             selected = select_relevant_sources("რა არის ბეტონის სიმტკიცე?", [SearchHit(score=1.0, chunk=candidate)])
 
         self.assertEqual(selected, [])
+
+    def test_provision_source_requires_complete_canonical_record(self) -> None:
+        complete = _chunk("complete", 1, "4.57. Высота прокладки.", "4.57").model_copy(
+            update={"kind": "provision", "complete_evidence": True}
+        )
+        incomplete = _chunk("incomplete", 2, "4.57. Фрагмент.", "4.57")
+        self.assertEqual([hit.chunk.id for hit in provision_source("4.57", [incomplete, complete])], ["complete"])

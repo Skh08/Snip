@@ -34,6 +34,12 @@ OVERGROUND_COMPOUND_CLARIFICATION = (
     "დააზუსტეთ, საუბარია ავტოგზაზე, რკინიგზაზე, ტრამვაის ლიანდაგზე თუ საფეხმავლო გზაზე."
 )
 
+OVERGROUND_CROSSING_ANSWER = (
+    "რკინიგზის, ტრამვაის ლიანდაგის, ავტოგზის ან ტროლეიბუსის საკონტაქტო ქსელის გადაკვეთის ადგილას "
+    "მიწისზედა გაზსადენის განთავსების სიმაღლე უნდა განისაზღვროს სნიპ II-89-80-ის მოთხოვნებით. "
+    "ეს სნიპ 2.04.08-87 სიმაღლის ციფრულ მნიშვნელობას არ ადგენს."
+)
+
 
 def is_georgian_question(value: str) -> bool:
     """Accept questions containing Georgian script; numbers and punctuation are allowed."""
@@ -71,4 +77,13 @@ def overground_compound_clarification(value: str) -> str | None:
     ))
     if not crossing_kind_given and all(marker in normalized for marker in ("საყრდენ", "კედელ", "გზ")):
         return OVERGROUND_COMPOUND_CLARIFICATION
+    return None
+
+
+def overground_crossing_answer(value: str) -> str | None:
+    """Prevent underground crossing depths from answering an overground query."""
+    normalized = value.casefold()
+    crossing_markers = ("ავტოგზ", "რკინიგზ", "ტრამვ", "ტროლეიბ")
+    if "მიწისზედა" in normalized and "გაზსადენ" in normalized and any(marker in normalized for marker in crossing_markers):
+        return OVERGROUND_CROSSING_ANSWER
     return None

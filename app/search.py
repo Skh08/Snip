@@ -76,6 +76,14 @@ def broad_topic_sources(query: str, chunks: list[Chunk]) -> list[SearchHit]:
     return []
 
 
+def provision_source(paragraph: str, chunks: list[Chunk]) -> list[SearchHit]:
+    """Return a complete canonical provision selected by deterministic routing."""
+    for chunk in chunks:
+        if chunk.paragraph == paragraph and chunk.complete_evidence and chunk.kind == "provision":
+            return [SearchHit(score=100.0, chunk=chunk)]
+    return []
+
+
 def keyword_search(query: str, chunks: list[Chunk], limit: int) -> list[SearchHit]:
     """BM25-style search with strong preference for exact provision numbers."""
     query_terms = Counter(_tokens(query))
