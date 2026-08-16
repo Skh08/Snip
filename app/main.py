@@ -6,7 +6,7 @@ from openai import OpenAIError
 from fastapi.staticfiles import StaticFiles
 
 from .models import ChatResponse, SearchRequest, SearchHit
-from .language import is_georgian_question, needs_clarification
+from .language import about_document_answer, is_georgian_question, needs_clarification
 from .search import load_chunks, search
 from .semantic import ClarificationRequired, answer_question, select_relevant_sources, semantic_search
 
@@ -55,6 +55,9 @@ def chat(request: SearchRequest) -> ChatResponse:
             answer="გთხოვთ, კითხვა ქართულ ენაზე მომაწოდოთ.",
             sources=[], grounded=False,
         )
+    orientation_answer = about_document_answer(request.query)
+    if orientation_answer:
+        return ChatResponse(answer=orientation_answer, sources=[], grounded=False)
     if needs_clarification(request.query):
         return ChatResponse(
             answer=("დააზუსტეთ კითხვა: საუბარია საბავშვო ბაღში გაზის მოწყობილობების "

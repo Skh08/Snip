@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import patch
 
-from app.language import is_georgian_question, needs_clarification
+from app.language import ABOUT_DOCUMENT_ANSWER, about_document_answer, is_georgian_question, needs_clarification
 from app.semantic import ClarificationRequired, _client, _normalize_answer_artifacts, _valid_final_answer
 
 
@@ -12,6 +12,11 @@ class LanguagePolicyTests(TestCase):
     def test_rejects_non_georgian_question(self) -> None:
         self.assertFalse(is_georgian_question("What are the requirements?"))
         self.assertFalse(is_georgian_question("Какие требования?"))
+
+    def test_answers_document_orientation_without_rag(self) -> None:
+        self.assertEqual(about_document_answer("რა დოკუმენტია ეს?"), ABOUT_DOCUMENT_ANSWER)
+        self.assertEqual(about_document_answer("რას ეხება კითხვა-პასუხი?"), ABOUT_DOCUMENT_ANSWER)
+        self.assertIsNone(about_document_answer("რას ეხება პ. 4.92?"))
 
     def test_final_answer_must_not_contain_foreign_or_banned_words(self) -> None:
         self.assertTrue(_valid_final_answer("გაზსადენის ჩაღრმავების სიღრმე უნდა იყოს არანაკლებ 1,0 მ."))
