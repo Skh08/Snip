@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from app.models import Chunk, SearchHit
-from app.search import fuse_search_hits, keyword_search
+from app.search import broad_topic_sources, fuse_search_hits, keyword_search
 
 
 def _chunk(identifier: str, ordinal: int, text: str, paragraph: str | None = None) -> Chunk:
@@ -42,3 +42,22 @@ class HybridSearchTests(TestCase):
         hits = keyword_search("требования надземных газопроводов", [heading, rule, unrelated], 3)
 
         self.assertEqual(hits[0].chunk.id, "rule")
+
+    def test_broad_overground_question_uses_general_rule_not_exception(self) -> None:
+        general = _chunk(
+            "general", 1,
+            "4.22. Надземные газопроводы следует прокладывать на отдельно стоящих опорах.",
+            "4.22",
+        )
+        exception = _chunk("exception", 2, "10.4. Особые требования в вечномерзлых грунтах.", "10.4")
+
+        hits = broad_topic_sources("რა მოთხოვნებია მიწისზედა გაზსადენებისთვის?", [general, exception])
+
+        self.assertEqual([hit.chunk.id for hit in hits], ["general"])
+
+    def test_qualified_overground_question_keeps_hybrid_search_available(self) -> None:
+        general = _chunk("general", 1, "4.22. Надземные газопроводы.", "4.22")
+        self.assertEqual(
+            broad_topic_sources("რა სიმაღლეზე უნდა განთავსდეს მიწისზედა გაზსადენი?", [general]),
+            [],
+        )

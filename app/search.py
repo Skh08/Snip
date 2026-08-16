@@ -49,6 +49,33 @@ def load_chunks(path: Path) -> list[Chunk]:
     return [Chunk.model_validate(item) for item in json.loads(path.read_text(encoding="utf-8"))]
 
 
+def broad_topic_sources(query: str, chunks: list[Chunk]) -> list[SearchHit]:
+    """Resolve a small set of unambiguous, broad Georgian topic questions.
+
+    A question asking generally for requirements is not an invitation to choose
+    one exceptional condition (permafrost, seismic area, and so on).  These
+    topics have an explicit subsection in the standard, so selecting its first
+    numbered provision is safer and more precise than leaving that choice to a
+    generative reranker.  Qualified questions continue through hybrid search.
+    """
+    normalized = query.casefold()
+    is_broad_overground_question = (
+        "მიწისზედა" in normalized
+        and "გაზსადენ" in normalized
+        and "მოთხოვნ" in normalized
+        and not any(marker in normalized for marker in (
+            "სიმაღლ", "საყრდენ", "თავისუფალ", "კედელ", "გზ", "გადაკვეთ",
+            "წნევ", "საბავშვ", "ტრანზიტ",
+        ))
+    )
+    if not is_broad_overground_question:
+        return []
+    for chunk in chunks:
+        if chunk.paragraph == "4.22" and _is_provision_body(chunk):
+            return [SearchHit(score=100.0, chunk=chunk)]
+    return []
+
+
 def keyword_search(query: str, chunks: list[Chunk], limit: int) -> list[SearchHit]:
     """BM25-style search with strong preference for exact provision numbers."""
     query_terms = Counter(_tokens(query))

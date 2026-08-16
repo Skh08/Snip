@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .models import ChatResponse, SearchRequest, SearchHit
 from .language import about_document_answer, is_georgian_question, needs_clarification
-from .search import load_chunks, search
+from .search import broad_topic_sources, load_chunks, search
 from .semantic import (
     ClarificationRequired,
     answer_question,
@@ -76,8 +76,10 @@ def chat(request: SearchRequest) -> ChatResponse:
     if not EMBEDDINGS.exists():
         raise HTTPException(status_code=503, detail="Multilingual search is not ready. Configure OPENAI_API_KEY and build embeddings.")
     try:
-        candidates = semantic_search(request.query, chunks, EMBEDDINGS, 8)
-        sources = select_relevant_sources(request.query, candidates)
+        sources = broad_topic_sources(request.query, chunks)
+        if not sources:
+            candidates = semantic_search(request.query, chunks, EMBEDDINGS, 8)
+            sources = select_relevant_sources(request.query, candidates)
         sources = expand_structured_context(sources, chunks)
     except (RuntimeError, OpenAIError) as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
