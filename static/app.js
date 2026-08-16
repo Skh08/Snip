@@ -2,6 +2,11 @@ const form = document.querySelector('#question-form');
 const input = document.querySelector('#question');
 const conversation = document.querySelector('#conversation');
 const submitButton = form.querySelector('button[type="submit"]');
+let pendingClarificationQuestion = null;
+
+function needsFollowUpContext(data) {
+  return data.grounded === false && /დააზუსტეთ|ზუსტი პასუხისთვის/i.test(data.answer || '');
+}
 
 function addMessage(text, type, sources = [], options = {}) {
   const item = document.createElement('article');
@@ -54,6 +59,13 @@ form.addEventListener('submit', async event => {
   event.preventDefault();
   const query = input.value.trim();
   if (!query) return;
+  // The API remains stateless for privacy.  When it has just asked a
+  // clarification question, join the visitor's short follow-up to that single
+  // prior question before retrieval.  The visible conversation still shows
+  // exactly what the visitor typed.
+  const effectiveQuery = pendingClarificationQuestion
+    ? `${pendingClarificationQuestion}\nდაზუსტება: ${query}`
+    : query;
 
   addMessage(query, 'user');
   input.value = '';
@@ -65,7 +77,7 @@ form.addEventListener('submit', async event => {
     const response = await fetch('/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query: effectiveQuery }),
     });
     const body = await response.text();
     let data;
@@ -78,6 +90,7 @@ form.addEventListener('submit', async event => {
       sources,
       { clarification: data.grounded === false }
     );
+    pendingClarificationQuestion = needsFollowUpContext(data) ? effectiveQuery : null;
   } catch {
     indicator.remove();
     addMessage('სერვერთან კავშირი ვერ დამყარდა. სცადეთ ხელახლა.', 'assistant');

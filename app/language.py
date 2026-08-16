@@ -66,6 +66,9 @@ def overground_overview_answer(value: str) -> str | None:
 def overground_compound_clarification(value: str) -> str | None:
     """Do not merge supports, walls, and road crossings into one guessed rule."""
     normalized = value.casefold()
-    if all(marker in normalized for marker in ("საყრდენ", "კედელ", "გზ")):
+    crossing_kind_given = any(marker in normalized for marker in (
+        "ავტოგზ", "რკინიგზ", "ტრამვ", "საფეხმავლ",
+    ))
+    if not crossing_kind_given and all(marker in normalized for marker in ("საყრდენ", "კედელ", "გზ")):
         return OVERGROUND_COMPOUND_CLARIFICATION
     return None

@@ -35,6 +35,11 @@ class LanguagePolicyTests(TestCase):
         answer = overground_compound_clarification("საყრდენებზე, გზის გადაკვეთაზე და კედელზე გატარებაზე")
         self.assertIsNotNone(answer)
         self.assertIn("დააზუსტეთ", answer)
+        self.assertIsNone(
+            overground_compound_clarification(
+                "საყრდენებზე, ავტოგზის გადაკვეთაზე და კედელზე გატარებაზე"
+            )
+        )
 
     def test_final_answer_must_not_contain_foreign_or_banned_words(self) -> None:
         self.assertTrue(_valid_final_answer("გაზსადენის ჩაღრმავების სიღრმე უნდა იყოს არანაკლებ 1,0 მ."))
