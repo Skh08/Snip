@@ -22,7 +22,7 @@ function addMessage(text, type, sources = [], options = {}) {
     const source = document.createElement('div');
     source.className = 'sources';
     const heading = document.createElement('span');
-    heading.textContent = 'წყარო:';
+    heading.textContent = options.related ? 'დაკავშირებული პუნქტები (ცნობისთვის):' : 'წყარო:';
     source.append(heading);
     [...new Set(sources.map(item => item.chunk.source_label))].forEach(label => {
       const chip = document.createElement('span');
@@ -83,12 +83,12 @@ form.addEventListener('submit', async event => {
     let data;
     try { data = JSON.parse(body); } catch { data = { detail: body }; }
     indicator.remove();
-    const sources = data.grounded ? (data.sources || []) : [];
+    const sources = data.sources || [];
     addMessage(
       data.answer || data.detail || 'შეცდომა მოხდა. სცადეთ ხელახლა.',
       'assistant',
       sources,
-      { clarification: data.grounded === false }
+      { clarification: data.grounded === false, related: data.related === true }
     );
     pendingClarificationQuestion = needsFollowUpContext(data) ? effectiveQuery : null;
   } catch {

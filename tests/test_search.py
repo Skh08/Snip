@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from app.models import Chunk, SearchHit
 from app.search import broad_topic_sources, fuse_search_hits, keyword_search, provision_source
-from app.semantic import select_relevant_sources
+from app.semantic import select_related_sources, select_relevant_sources
 
 
 def _chunk(identifier: str, ordinal: int, text: str, paragraph: str | None = None) -> Chunk:
@@ -76,6 +76,18 @@ class HybridSearchTests(TestCase):
             selected = select_relevant_sources("რა არის ბეტონის სიმტკიცე?", [SearchHit(score=1.0, chunk=candidate)])
 
         self.assertEqual(selected, [])
+
+    def test_related_selector_keeps_information_explicitly_separate(self) -> None:
+        candidate = _chunk("candidate", 1, "4.28. Высота прокладки надземных газопроводов.", "4.28").model_copy(
+            update={"kind": "provision", "complete_evidence": True}
+        )
+        client = SimpleNamespace(
+            responses=SimpleNamespace(create=lambda **_: SimpleNamespace(output_text='["candidate"]'))
+        )
+        with patch("app.semantic._client", return_value=client):
+            selected = select_related_sources("რა მოთხოვნაა მიმდებარე ტერიტორიაზე?", [SearchHit(score=1.0, chunk=candidate)])
+
+        self.assertEqual([hit.chunk.id for hit in selected], ["candidate"])
 
     def test_provision_source_requires_complete_canonical_record(self) -> None:
         complete = _chunk("complete", 1, "4.57. Высота прокладки.", "4.57").model_copy(

@@ -21,8 +21,10 @@ from .validation import usable_evidence
 from .semantic import (
     ClarificationRequired,
     answer_question,
+    answer_related_context,
     expand_structured_context,
     select_relevant_sources,
+    select_related_sources,
     semantic_search,
 )
 
@@ -80,8 +82,6 @@ def chat(request: SearchRequest) -> ChatResponse:
     if compound_clarification:
         return ChatResponse(answer=compound_clarification, sources=[], grounded=False)
     parking_clarification = parking_scope_clarification(request.query)
-    if parking_clarification:
-        return ChatResponse(answer=parking_clarification, sources=[], grounded=False)
     if needs_clarification(request.query):
         return ChatResponse(
             answer=("დააზუსტეთ კითხვა: საუბარია საბავშვო ბაღში გაზის მოწყობილობების "
@@ -119,7 +119,24 @@ def chat(request: SearchRequest) -> ChatResponse:
         raise HTTPException(status_code=503, detail=str(error)) from error
     # Cross-language embeddings often have lower cosine scores than same-language matches.
     # Keep a conservative floor, then let the grounded-answer prompt reject insufficient evidence.
-    if not sources or sources[0].score < 0.10:
+    if not sources:
+        try:
+            related_sources = select_related_sources(request.query, candidates)
+            related_sources = expand_structured_context(related_sources, chunks)
+            if usable_evidence(related_sources):
+                related_answer = answer_related_context(request.query, related_sources)
+                return ChatResponse(
+                    answer=related_answer, sources=related_sources, grounded=False, related=True,
+                )
+        except (RuntimeError, OpenAIError):
+            pass
+        if parking_clarification:
+            return ChatResponse(answer=parking_clarification, sources=[], grounded=False)
+        return ChatResponse(
+            answer="ამ კითხვაზე პასუხი მოცემულ СНиП 2.04.08-87 დოკუმენტში საკმარისი სანდოობით ვერ მოიძებნა.",
+            sources=[], grounded=False,
+        )
+    if sources[0].score < 0.10:
         return ChatResponse(
             answer="ამ კითხვაზე პასუხი მოცემულ СНиП 2.04.08-87 დოკუმენტში საკმარისი სანდოობით ვერ მოიძებნა.",
             sources=[], grounded=False,

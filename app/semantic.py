@@ -189,6 +189,41 @@ def select_relevant_sources(question: str, candidates: list[SearchHit], limit: i
     return selected
 
 
+def select_related_sources(question: str, candidates: list[SearchHit], limit: int = 2) -> list[SearchHit]:
+    """Select closely related context only after direct-answer retrieval abstains."""
+    candidates = [
+        item for item in candidates
+        if item.chunk.complete_evidence and item.chunk.kind in {"provision", "table"}
+    ]
+    if not candidates:
+        return []
+    candidate_text = "\n\n".join(
+        f"ID={item.chunk.id}\nSOURCE={item.chunk.source_label}\n"
+        f"SECTION={item.chunk.section or 'not specified'}\n"
+        f"SUBSECTION={item.chunk.subsection or 'not specified'}\nTEXT={item.chunk.text}"
+        for item in candidates
+    )
+    response = _client().responses.create(
+        model=CHAT_MODEL,
+        reasoning={"effort": "minimal"},
+        max_output_tokens=160,
+        instructions=(
+            "The Georgian question has no directly answering provision. Select at most two supplied provisions that are "
+            "genuinely useful contextual information, but do not select a merely keyword-related or exceptional condition. "
+            "The selected provisions will be explicitly labelled as informational, never as a direct answer. "
+            "Return an empty array if no candidate is clearly useful. Return only a JSON array of exact ID strings."
+        ),
+        input=f"Question: {question}\n\nCandidates:\n{candidate_text}",
+    )
+    try:
+        chosen_ids = json.loads(response.output_text.strip().removeprefix("```json").removesuffix("```").strip())
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(chosen_ids, list):
+        return []
+    return [item for item in candidates if item.chunk.id in chosen_ids][:limit]
+
+
 def expand_structured_context(sources: list[SearchHit], chunks: list[Chunk], limit: int = 6) -> list[SearchHit]:
     """Include continuations of a selected regulatory provision as answer context.
 
@@ -347,4 +382,31 @@ def answer_question(question: str, sources: list[SearchHit]) -> str:
     raise ClarificationRequired(
         "მიწისზედა გაზსადენებისთვის მოთხოვნები განთავსების პირობების მიხედვით განსხვავდება. "
         "დააზუსტეთ, საუბარია საყრდენებზე განთავსებაზე, გზის გადაკვეთაზე, შენობის კედელზე გატარებაზე თუ სხვა კონკრეტულ პირობაზე."
+    )
+
+
+def answer_related_context(question: str, sources: list[SearchHit]) -> str:
+    """Translate related provisions without converting them into a decision."""
+    evidence = _evidence_text(sources)
+    response = _client().responses.create(
+        model=CHAT_MODEL,
+        reasoning={"effort": "minimal"},
+        max_output_tokens=MAX_OUTPUT_TOKENS,
+        instructions=(
+            "Write one concise, professional paragraph in Georgian only. Summarize only the supplied Russian technical "
+            "provisions as related background for the user's question. Do not infer permission, prohibition, compliance, "
+            "or a final design decision. Do not include sources, headings, Markdown, Russian words, or meta-language. "
+            + GEORGIAN_TECHNICAL_GLOSSARY
+        ),
+        input=f"Question: {question}\n\nRelated provisions:\n{evidence}",
+    )
+    draft = response.output_text.strip()
+    if not draft:
+        raise RuntimeError("დაკავშირებული ინფორმაციის ქართული შეჯამება ვერ შესრულდა.")
+    polished = _normalize_answer_artifacts(polish_georgian_answer(draft))
+    if not _valid_final_answer(polished):
+        raise RuntimeError("დაკავშირებული ინფორმაციის ქართული ტექსტი ვერ დამოწმდა.")
+    return (
+        "დოკუმენტში ამ კითხვაზე პირდაპირი წესი არ მოიძებნა. ცნობისთვის, შინაარსობრივად ახლო დებულებებია: "
+        + polished
     )

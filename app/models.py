@@ -34,3 +34,4 @@ class ChatResponse(BaseModel):
     answer: str
     sources: list[SearchHit]
     grounded: bool
+    related: bool = False
