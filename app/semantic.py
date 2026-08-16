@@ -83,7 +83,15 @@ def build_embeddings(chunks: list[Chunk], destination: Path) -> int:
         batch = chunks[start : start + batch_size]
         response = client.embeddings.create(
             model=EMBEDDING_MODEL,
-            input=[f"{chunk.source_label}\n{chunk.text}" for chunk in batch],
+            input=[
+                "\n".join(part for part in (
+                    f"РАЗДЕЛ: {chunk.section}" if chunk.section else "",
+                    f"ПОДРАЗДЕЛ: {chunk.subsection}" if chunk.subsection else "",
+                    f"ИСТОЧНИК: {chunk.source_label}",
+                    chunk.text,
+                ) if part)
+                for chunk in batch
+            ],
         )
         vectors.extend(item.embedding for item in response.data)
     destination.write_text(json.dumps({"model": EMBEDDING_MODEL, "vectors": vectors}), encoding="utf-8")
@@ -146,8 +154,15 @@ def semantic_search(query: str, chunks: list[Chunk], embeddings_path: Path, limi
 
 def select_relevant_sources(question: str, candidates: list[SearchHit], limit: int = 3) -> list[SearchHit]:
     """Rerank candidates so unrelated nearby provisions never reach the answer prompt."""
+    candidates = [
+        item for item in candidates
+        if item.chunk.complete_evidence and item.chunk.kind in {"provision", "table"}
+    ]
+    if not candidates:
+        return []
     candidate_text = "\n\n".join(
-        f"ID={item.chunk.id}\nSECTION={item.chunk.section or 'not specified'}\n"
+        f"ID={item.chunk.id}\nTYPE={item.chunk.kind}\nSECTION={item.chunk.section or 'not specified'}\n"
+        f"SUBSECTION={item.chunk.subsection or 'not specified'}\n"
         f"SOURCE={item.chunk.source_label}\nTEXT={item.chunk.text}"
         for item in candidates
     )
@@ -156,8 +171,10 @@ def select_relevant_sources(question: str, candidates: list[SearchHit], limit: i
         reasoning={"effort": "minimal"},
         max_output_tokens=200,
         instructions=("You are a strict evidence selector for a Russian technical standard. "
-                      "Given a Georgian user question and candidate passages, choose only passages that directly answer it. "
-                      "Do not include general or merely related provisions. Choose one passage when one is sufficient. "
+                      "Given a Georgian user question and complete candidate provisions, choose only passages that directly answer it. "
+                      "Never select an exceptional climatic, seismic, industrial, or object-specific condition for a broad question unless the question explicitly names that condition. "
+                      "Do not include merely related provisions. Choose one passage when one is sufficient. "
+                      "Return an empty array when none directly answers the question; an empty result is safer than a weak match. "
                       f"Return only a JSON array of up to {limit} exact ID strings, with no Markdown or explanation."),
         input=f"Question: {question}\n\nCandidates:\n{candidate_text}",
     )
@@ -165,11 +182,11 @@ def select_relevant_sources(question: str, candidates: list[SearchHit], limit: i
     try:
         chosen_ids = json.loads(raw)
     except json.JSONDecodeError:
-        return candidates[:1]
+        return []
     if not isinstance(chosen_ids, list):
-        return candidates[:1]
+        return []
     selected = [item for item in candidates if item.chunk.id in chosen_ids][:limit]
-    return selected or candidates[:1]
+    return selected
 
 
 def expand_structured_context(sources: list[SearchHit], chunks: list[Chunk], limit: int = 6) -> list[SearchHit]:

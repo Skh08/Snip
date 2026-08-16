@@ -3,5 +3,7 @@ __pycache__/
 .venv/
 data/knowledge_base.json
 data/embeddings.json
+data/canonical_knowledge_base.json
+data/canonical_embeddings.json
 data/*.html
 .env

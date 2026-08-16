@@ -1,7 +1,10 @@
+from types import SimpleNamespace
 from unittest import TestCase
+from unittest.mock import patch
 
 from app.models import Chunk, SearchHit
 from app.search import broad_topic_sources, fuse_search_hits, keyword_search
+from app.semantic import select_relevant_sources
 
 
 def _chunk(identifier: str, ordinal: int, text: str, paragraph: str | None = None) -> Chunk:
@@ -61,3 +64,15 @@ class HybridSearchTests(TestCase):
             broad_topic_sources("რა სიმაღლეზე უნდა განთავსდეს მიწისზედა გაზსადენი?", [general]),
             [],
         )
+
+    def test_source_selector_can_abstain_instead_of_using_first_weak_match(self) -> None:
+        candidate = _chunk("candidate", 1, "4.22. Надземные газопроводы.", "4.22").model_copy(
+            update={"kind": "provision", "complete_evidence": True}
+        )
+        client = SimpleNamespace(
+            responses=SimpleNamespace(create=lambda **_: SimpleNamespace(output_text="[]"))
+        )
+        with patch("app.semantic._client", return_value=client):
+            selected = select_relevant_sources("რა არის ბეტონის სიმტკიცე?", [SearchHit(score=1.0, chunk=candidate)])
+
+        self.assertEqual(selected, [])

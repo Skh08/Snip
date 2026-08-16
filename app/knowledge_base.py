@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .ingest import parse_docx
 from .ingest_html import parse_html
+from .canonical import canonicalize
 from .models import Chunk
 
 
@@ -22,11 +23,11 @@ def _verification_status(word_text: str, web_text: str) -> str:
 
 
 def build(docx_path: Path, output_path: Path, html_path: Path | None = None) -> int:
-    primary = parse_docx(docx_path)
+    primary = canonicalize(parse_docx(docx_path))
     chunks: list[Chunk] = list(primary)
     primary_paragraphs = {chunk.paragraph for chunk in primary if chunk.paragraph}
     if html_path and html_path.exists():
-        web_chunks = parse_html(html_path)
+        web_chunks = canonicalize(parse_html(html_path))
         web_by_paragraph = {chunk.paragraph: chunk for chunk in web_chunks if chunk.paragraph}
         verified_primary: list[Chunk] = []
         for chunk in primary:

@@ -13,6 +13,11 @@ class Chunk(BaseModel):
     source_url: str | None = None
     verification_status: str | None = None
     verification_url: str | None = None
+    # Canonical records retain the document hierarchy and merge every visual
+    # continuation belonging to one numbered regulatory provision.
+    subsection: str | None = None
+    fragment_count: int = 1
+    complete_evidence: bool = False
 
 
 class SearchRequest(BaseModel):

@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from .models import ChatResponse, SearchRequest, SearchHit
 from .language import about_document_answer, is_georgian_question, needs_clarification
 from .search import broad_topic_sources, load_chunks, search
+from .validation import usable_evidence
 from .semantic import (
     ClarificationRequired,
     answer_question,
@@ -17,8 +18,8 @@ from .semantic import (
 )
 
 BASE_DIR = Path(__file__).resolve().parents[1]
-KNOWLEDGE_BASE = BASE_DIR / "data" / "knowledge_base.json"
-EMBEDDINGS = BASE_DIR / "data" / "embeddings.json"
+KNOWLEDGE_BASE = BASE_DIR / "data" / "canonical_knowledge_base.json"
+EMBEDDINGS = BASE_DIR / "data" / "canonical_embeddings.json"
 HTML_SOURCE = BASE_DIR / "data" / "snip_2.04.08-87.html"
 app = FastAPI(title="СНиП Chatbot API", version="0.1.0")
 STATIC_DIR = BASE_DIR / "static"
@@ -37,6 +38,8 @@ def health() -> dict:
     return {
         "status": "ok",
         "indexed_chunks": len(chunks),
+        "canonical_provisions": sum(chunk.kind == "provision" for chunk in chunks),
+        "complete_evidence_records": sum(chunk.complete_evidence for chunk in chunks),
         "secondary_source": {
             "url": "https://files.stroyinf.ru/Data1/2/2013/index.htm",
             "local_copy_available": HTML_SOURCE.exists(),
@@ -88,6 +91,11 @@ def chat(request: SearchRequest) -> ChatResponse:
     if not sources or sources[0].score < 0.10:
         return ChatResponse(
             answer="ამ კითხვაზე პასუხი მოცემულ СНиП 2.04.08-87 დოკუმენტში საკმარისი სანდოობით ვერ მოიძებნა.",
+            sources=[], grounded=False,
+        )
+    if not usable_evidence(sources):
+        return ChatResponse(
+            answer="ამ კითხვაზე სრულყოფილი, ზუსტად ციტირებადი ნორმატიული მტკიცებულება ვერ მოიძებნა.",
             sources=[], grounded=False,
         )
     try:

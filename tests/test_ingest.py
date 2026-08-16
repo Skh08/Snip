@@ -3,7 +3,10 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from app.ingest import parse_docx
+from app.canonical import canonicalize
 from app.knowledge_base import _verification_status
+from app.models import SearchHit
+from app.validation import usable_evidence
 
 
 def _document(*texts: str) -> SimpleNamespace:
@@ -60,3 +63,30 @@ class IngestionTests(TestCase):
 
         self.assertEqual(chunks[1].section, "4. Наружные газопроводы и сооружения")
         self.assertEqual(chunks[2].section, "4. Наружные газопроводы и сооружения")
+
+    def test_canonical_record_merges_provision_and_excludes_subsection_title(self) -> None:
+        document = _document(
+            "4. НАРУЖНЫЕ ГАЗОПРОВОДЫ И СООРУЖЕНИЯ",
+            "4.21. Правило для подземных газопроводов.",
+            "Надземные и наземные газопроводы",
+            "4.22. Надземные газопроводы следует прокладывать на опорах.",
+            "При этом разрешается прокладка на колоннах.",
+        )
+        with patch("app.ingest.Document", return_value=document):
+            records = canonicalize(parse_docx("unused.docx"))
+
+        provision = next(record for record in records if record.paragraph == "4.22")
+        self.assertEqual(provision.kind, "provision")
+        self.assertTrue(provision.complete_evidence)
+        self.assertEqual(provision.fragment_count, 2)
+        self.assertEqual(provision.subsection, "Надземные и наземные газопроводы")
+        self.assertIn("на колоннах", provision.text)
+        self.assertNotIn("Надземные и наземные газопроводы", next(record for record in records if record.paragraph == "4.21").text)
+
+    def test_answer_evidence_must_be_a_complete_canonical_record(self) -> None:
+        document = _document("4.22. Надземные газопроводы следует прокладывать на опорах.")
+        with patch("app.ingest.Document", return_value=document):
+            record = canonicalize(parse_docx("unused.docx"))[0]
+
+        self.assertTrue(usable_evidence([SearchHit(score=1.0, chunk=record)]))
+        self.assertFalse(usable_evidence([SearchHit(score=1.0, chunk=record.model_copy(update={"complete_evidence": False}))]))

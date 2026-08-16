@@ -25,7 +25,7 @@ The web copy is never used to silently replace a Word passage: its chunks are ma
 
 ## Multilingual questions
 
-The chatbot accepts Georgian questions only. It translates the question into a Russian search query, then retrieves against both language forms before generating a grounded Georgian answer. Questions without Georgian script receive a Georgian instruction to ask in Georgian. The default 600-token answer cap keeps usage predictable. Set `OPENAI_API_KEY` only in `.env` locally or Railway Variables in production; never commit it.
+The chatbot accepts Georgian questions only. It translates the question into a Russian search query, then retrieves against both language forms before generating a grounded Georgian answer. The runtime first merges Word fragments into one complete, numbered provision and retains its chapter and subsection; headings and partial continuations are never used as answer evidence. Questions without Georgian script receive a Georgian instruction to ask in Georgian. The default 600-token answer cap keeps usage predictable. Set `OPENAI_API_KEY` only in `.env` locally or Railway Variables in production; never commit it.
 
 Open `http://127.0.0.1:8000` to use the chatbot. `GET /health` reports whether the document has been indexed; `POST /search` exposes the retrieval layer for testing.
 
@@ -47,6 +47,7 @@ Run the no-cost structural checks inside the container:
 
 ```powershell
 docker compose run --rm --no-deps snip-chatbot python -m unittest discover -s tests -v
+docker compose run --rm --no-deps snip-chatbot python -m scripts.validate_canonical
 ```
 
 After the service is running, run the full source-and-language smoke test. The `--live` mode sends three short evaluation questions to the configured model:
@@ -63,6 +64,8 @@ answer receives the selected provision together with its section context and
 continuation paragraphs from the same provision.
 
 The checked Georgian evaluation set is stored in `tests/evaluation_cases.json`.
+It contains normal requirements, numerical rules, restrictions, and an
+out-of-document question that must be rejected rather than guessed.
 After the container is running, compare the original vector-only baseline with
 hybrid retrieval before accepting a retrieval change:
 

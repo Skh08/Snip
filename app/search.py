@@ -118,6 +118,10 @@ def keyword_search(query: str, chunks: list[Chunk], limit: int) -> list[SearchHi
                 score += 2.5
         if score:
             concept_count = _concept_matches(query_terms, terms)
+            # A provision that covers every substantive term is more useful
+            # than a long passage repeating just one of them.  This is the
+            # deterministic precision half of the hybrid retrieval layer.
+            score += 4.0 * concept_count * concept_count
             if _is_provision_body(chunk):
                 score += 0.8 * concept_count
             if chunk.id in heading_targets:

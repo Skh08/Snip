@@ -40,6 +40,11 @@ def main() -> None:
     for case in cases:
         response = request("/chat", {"query": case["question"]})
         labels = [item["chunk"]["source_label"] for item in response["sources"]]
+        if case.get("expected_grounded") is False:
+            require(not response["grounded"], f"out-of-scope question was grounded: {case['question']}")
+            require(not response["sources"], f"out-of-scope question has sources: {case['question']}")
+            print(f"PASS: abstention — {case['question']}")
+            continue
         require(response["grounded"], f"not grounded: {case['question']}")
         require(case["expected_source"] in labels, f"wrong source for {case['question']}: {labels}")
         for expected_text in case["expected_answer_terms"]:
