@@ -6,7 +6,13 @@ from openai import OpenAIError
 from fastapi.staticfiles import StaticFiles
 
 from .models import ChatResponse, SearchRequest, SearchHit
-from .language import about_document_answer, is_georgian_question, needs_clarification
+from .language import (
+    about_document_answer,
+    is_georgian_question,
+    needs_clarification,
+    overground_compound_clarification,
+    overground_overview_answer,
+)
 from .search import broad_topic_sources, load_chunks, search
 from .validation import usable_evidence
 from .semantic import (
@@ -67,6 +73,9 @@ def chat(request: SearchRequest) -> ChatResponse:
     orientation_answer = about_document_answer(request.query)
     if orientation_answer:
         return ChatResponse(answer=orientation_answer, sources=[], grounded=False)
+    compound_clarification = overground_compound_clarification(request.query)
+    if compound_clarification:
+        return ChatResponse(answer=compound_clarification, sources=[], grounded=False)
     if needs_clarification(request.query):
         return ChatResponse(
             answer=("დააზუსტეთ კითხვა: საუბარია საბავშვო ბაღში გაზის მოწყობილობების "
@@ -76,6 +85,11 @@ def chat(request: SearchRequest) -> ChatResponse:
     chunks = load_chunks(KNOWLEDGE_BASE)
     if not chunks:
         raise HTTPException(status_code=503, detail="Knowledge base is not built. Run the ingestion command first.")
+    overview_answer = overground_overview_answer(request.query)
+    if overview_answer:
+        sources = broad_topic_sources(request.query, chunks)
+        if usable_evidence(sources):
+            return ChatResponse(answer=overview_answer, sources=sources, grounded=True)
     if not EMBEDDINGS.exists():
         raise HTTPException(status_code=503, detail="Multilingual search is not ready. Configure OPENAI_API_KEY and build embeddings.")
     try:
