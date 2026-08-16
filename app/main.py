@@ -14,7 +14,7 @@ from .language import (
     overground_compound_clarification,
     overground_crossing_answer,
     overground_overview_answer,
-    parking_scope_clarification,
+    parking_related_answer,
 )
 from .search import broad_topic_sources, load_chunks, provision_source, search
 from .validation import usable_evidence
@@ -34,6 +34,25 @@ EMBEDDINGS = BASE_DIR / "data" / "canonical_embeddings.json"
 HTML_SOURCE = BASE_DIR / "data" / "snip_2.04.08-87.html"
 app = FastAPI(title="СНиП Chatbot API", version="0.1.0")
 STATIC_DIR = BASE_DIR / "static"
+
+
+def related_context_response(query: str, candidates: list[SearchHit], chunks: list) -> ChatResponse | None:
+    """Return explicitly labelled background only when direct retrieval abstained."""
+    try:
+        related_sources = select_related_sources(query, candidates)
+        related_sources = expand_structured_context(related_sources, chunks)
+        if usable_evidence(related_sources):
+            return ChatResponse(
+                answer=answer_related_context(query, related_sources),
+                sources=related_sources,
+                grounded=False,
+                related=True,
+            )
+    except (RuntimeError, OpenAIError):
+        # Context is optional. A model/API failure must not turn a non-answer
+        # into an unsourced technical conclusion.
+        return None
+    return None
 
 
 @app.get("/", include_in_schema=False)
@@ -81,7 +100,6 @@ def chat(request: SearchRequest) -> ChatResponse:
     compound_clarification = overground_compound_clarification(request.query)
     if compound_clarification:
         return ChatResponse(answer=compound_clarification, sources=[], grounded=False)
-    parking_clarification = parking_scope_clarification(request.query)
     if needs_clarification(request.query):
         return ChatResponse(
             answer=("დააზუსტეთ კითხვა: საუბარია საბავშვო ბაღში გაზის მოწყობილობების "
@@ -91,6 +109,18 @@ def chat(request: SearchRequest) -> ChatResponse:
     chunks = load_chunks(KNOWLEDGE_BASE)
     if not chunks:
         raise HTTPException(status_code=503, detail="Knowledge base is not built. Run the ingestion command first.")
+    parking_context = parking_related_answer(request.query)
+    if parking_context:
+        source_labels = {"4.3", "4.17", "4.28", "6.4", "6.21", "6.24"}
+        parking_sources = [
+            SearchHit(score=1.0, chunk=chunk)
+            for chunk in chunks
+            if chunk.paragraph in source_labels or chunk.source_label == "Таблица 6"
+        ]
+        if usable_evidence(parking_sources):
+            return ChatResponse(
+                answer=parking_context, sources=parking_sources, grounded=False, related=True,
+            )
     checked_rule = checked_rule_answer(request.query)
     if checked_rule:
         answer, paragraph = checked_rule
@@ -112,7 +142,7 @@ def chat(request: SearchRequest) -> ChatResponse:
     try:
         sources = broad_topic_sources(request.query, chunks)
         if not sources:
-            candidates = semantic_search(request.query, chunks, EMBEDDINGS, 8)
+            candidates = semantic_search(request.query, chunks, EMBEDDINGS, 12)
             sources = select_relevant_sources(request.query, candidates)
         sources = expand_structured_context(sources, chunks)
     except (RuntimeError, OpenAIError) as error:
@@ -120,28 +150,25 @@ def chat(request: SearchRequest) -> ChatResponse:
     # Cross-language embeddings often have lower cosine scores than same-language matches.
     # Keep a conservative floor, then let the grounded-answer prompt reject insufficient evidence.
     if not sources:
-        try:
-            related_sources = select_related_sources(request.query, candidates)
-            related_sources = expand_structured_context(related_sources, chunks)
-            if usable_evidence(related_sources):
-                related_answer = answer_related_context(request.query, related_sources)
-                return ChatResponse(
-                    answer=related_answer, sources=related_sources, grounded=False, related=True,
-                )
-        except (RuntimeError, OpenAIError):
-            pass
-        if parking_clarification:
-            return ChatResponse(answer=parking_clarification, sources=[], grounded=False)
+        related = related_context_response(request.query, candidates, chunks)
+        if related:
+            return related
         return ChatResponse(
             answer="ამ კითხვაზე პასუხი მოცემულ СНиП 2.04.08-87 დოკუმენტში საკმარისი სანდოობით ვერ მოიძებნა.",
             sources=[], grounded=False,
         )
     if sources[0].score < 0.10:
+        related = related_context_response(request.query, candidates, chunks)
+        if related:
+            return related
         return ChatResponse(
             answer="ამ კითხვაზე პასუხი მოცემულ СНиП 2.04.08-87 დოკუმენტში საკმარისი სანდოობით ვერ მოიძებნა.",
             sources=[], grounded=False,
         )
     if not usable_evidence(sources):
+        related = related_context_response(request.query, candidates, chunks)
+        if related:
+            return related
         return ChatResponse(
             answer="ამ კითხვაზე სრულყოფილი, ზუსტად ციტირებადი ნორმატიული მტკიცებულება ვერ მოიძებნა.",
             sources=[], grounded=False,

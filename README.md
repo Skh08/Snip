@@ -41,6 +41,8 @@ The Word document remains the authoritative text. The published HTML transcripti
 
 Every answer follows a strict one-paragraph Georgian template. A mandatory glossary defines the technical forms used for gas pipelines, installation depth, pipe crown level, outdoor design temperature, pressure, and related terms. A separate final Georgian-language pass improves wording while being instructed not to alter facts, figures, units, conditions, or scope. Sources are rendered by the interface, not invented by the model.
 
+When no provision directly answers a question, the chatbot performs a separate, conservative contextual pass. It may show at most three complete provisions or tables only when they govern the same installation method, location, clearance, crossing, pressure, or safety condition. The interface labels these as related information; it never presents them as a permission, prohibition, or final design decision. If that link cannot be established, the chatbot abstains.
+
 ## Verification
 
 Run the no-cost structural checks inside the container:

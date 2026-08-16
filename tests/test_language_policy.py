@@ -10,7 +10,7 @@ from app.language import (
     overground_compound_clarification,
     overground_crossing_answer,
     overground_overview_answer,
-    parking_scope_clarification,
+    parking_related_answer,
 )
 from app.semantic import ClarificationRequired, _client, _normalize_answer_artifacts, _valid_final_answer
 
@@ -51,6 +51,11 @@ class LanguagePolicyTests(TestCase):
         self.assertIsNone(overground_crossing_answer("მიწისქვეშა გაზსადენის ტრამვაის ლიანდაგზე გადაკვეთა"))
 
     def test_checked_rules_preserve_permissions_prohibitions_and_measurements(self) -> None:
+        indoor_pipe = checked_rule_answer("როგორი მილი უნდა მოეწყოს სახლში?")
+        self.assertEqual(indoor_pipe[1], "6.2")
+        self.assertIn("ფოლადის მილებით", indoor_pipe[0])
+        self.assertIn("რეზინ-ქსოვილოვანი შლანგები", indoor_pipe[0])
+
         low_support = checked_rule_answer("თავისუფალ ტერიტორიაზე დაბალ საყრდენზე რა სიმაღლეზე შეიძლება მიწისზედა გაზსადენი?")
         self.assertEqual(low_support[1], "4.28")
         self.assertIn("დასაშვებია", low_support[0])
@@ -64,10 +69,12 @@ class LanguagePolicyTests(TestCase):
         self.assertEqual(corrosion[1], "4.81")
         self.assertIn("გრუნტის ორი ფენისა", corrosion[0])
 
-    def test_parking_question_explains_the_document_scope(self) -> None:
-        answer = parking_scope_clarification("შეიძლება თუ არა ავტოსადგომში გაზის მილის გაყვანა?")
+    def test_parking_question_returns_labeled_related_requirements(self) -> None:
+        answer = parking_related_answer("შეიძლება თუ არა ავტოსადგომში გაზის მილის გაყვანა?")
         self.assertIsNotNone(answer)
-        self.assertIn("პირდაპირ არ არის მოცემული", answer)
+        self.assertIn("სპეციალურ ნორმას", answer)
+        self.assertIn("0,8 მ", answer)
+        self.assertIn("არ წარმოადგენს ავტოსადგომისთვის სპეციალურ ნებართვას", answer)
 
     def test_final_answer_must_not_contain_foreign_or_banned_words(self) -> None:
         self.assertTrue(_valid_final_answer("გაზსადენის ჩაღრმავების სიღრმე უნდა იყოს არანაკლებ 1,0 მ."))

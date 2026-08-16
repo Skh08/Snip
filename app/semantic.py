@@ -189,8 +189,13 @@ def select_relevant_sources(question: str, candidates: list[SearchHit], limit: i
     return selected
 
 
-def select_related_sources(question: str, candidates: list[SearchHit], limit: int = 2) -> list[SearchHit]:
-    """Select closely related context only after direct-answer retrieval abstains."""
+def select_related_sources(question: str, candidates: list[SearchHit], limit: int = 3) -> list[SearchHit]:
+    """Select related context only after direct-answer retrieval abstains.
+
+    This is deliberately a different task from direct retrieval: a selected
+    passage may explain a condition around the question, but it must never be
+    represented as a permission, prohibition, or answer for an unnamed object.
+    """
     candidates = [
         item for item in candidates
         if item.chunk.complete_evidence and item.chunk.kind in {"provision", "table"}
@@ -208,8 +213,11 @@ def select_related_sources(question: str, candidates: list[SearchHit], limit: in
         reasoning={"effort": "minimal"},
         max_output_tokens=160,
         instructions=(
-            "The Georgian question has no directly answering provision. Select at most two supplied provisions that are "
-            "genuinely useful contextual information, but do not select a merely keyword-related or exceptional condition. "
+            "The Georgian question has no directly answering provision. Select at most three supplied provisions that are "
+            "genuinely useful contextual information. A provision is useful only if it governs the same pipeline type, "
+            "installation method, location, clearance, crossing, pressure, or safety condition named in the question. "
+            "Do not select merely keyword-related text, a different object type, or an exceptional climatic, seismic, "
+            "industrial, or object-specific condition unless the question explicitly names that condition. "
             "The selected provisions will be explicitly labelled as informational, never as a direct answer. "
             "Return an empty array if no candidate is clearly useful. Return only a JSON array of exact ID strings."
         ),
@@ -394,8 +402,9 @@ def answer_related_context(question: str, sources: list[SearchHit]) -> str:
         max_output_tokens=MAX_OUTPUT_TOKENS,
         instructions=(
             "Write one concise, professional paragraph in Georgian only. Summarize only the supplied Russian technical "
-            "provisions as related background for the user's question. Do not infer permission, prohibition, compliance, "
-            "or a final design decision. Do not include sources, headings, Markdown, Russian words, or meta-language. "
+            "provisions as related background for the user's question. State each condition with its actual scope. "
+            "Do not infer permission, prohibition, compliance, applicability to an unnamed object, or a final design decision. "
+            "Do not include sources, headings, Markdown, Russian words, or meta-language. "
             + GEORGIAN_TECHNICAL_GLOSSARY
         ),
         input=f"Question: {question}\n\nRelated provisions:\n{evidence}",
