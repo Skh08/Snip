@@ -14,6 +14,7 @@ from .language import (
     overground_compound_clarification,
     overground_crossing_answer,
     overground_overview_answer,
+    parking_scope_clarification,
 )
 from .search import broad_topic_sources, load_chunks, provision_source, search
 from .validation import usable_evidence
@@ -78,6 +79,9 @@ def chat(request: SearchRequest) -> ChatResponse:
     compound_clarification = overground_compound_clarification(request.query)
     if compound_clarification:
         return ChatResponse(answer=compound_clarification, sources=[], grounded=False)
+    parking_clarification = parking_scope_clarification(request.query)
+    if parking_clarification:
+        return ChatResponse(answer=parking_clarification, sources=[], grounded=False)
     if needs_clarification(request.query):
         return ChatResponse(
             answer=("დააზუსტეთ კითხვა: საუბარია საბავშვო ბაღში გაზის მოწყობილობების "

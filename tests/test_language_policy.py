@@ -10,6 +10,7 @@ from app.language import (
     overground_compound_clarification,
     overground_crossing_answer,
     overground_overview_answer,
+    parking_scope_clarification,
 )
 from app.semantic import ClarificationRequired, _client, _normalize_answer_artifacts, _valid_final_answer
 
@@ -62,6 +63,11 @@ class LanguagePolicyTests(TestCase):
         corrosion = checked_rule_answer("როგორ უნდა დაიცვას მიწისზედა გაზსადენი ატმოსფერული კოროზიისგან?")
         self.assertEqual(corrosion[1], "4.81")
         self.assertIn("გრუნტის ორი ფენისა", corrosion[0])
+
+    def test_parking_question_explains_the_document_scope(self) -> None:
+        answer = parking_scope_clarification("შეიძლება თუ არა ავტოსადგომში გაზის მილის გაყვანა?")
+        self.assertIsNotNone(answer)
+        self.assertIn("პირდაპირ არ არის მოცემული", answer)
 
     def test_final_answer_must_not_contain_foreign_or_banned_words(self) -> None:
         self.assertTrue(_valid_final_answer("გაზსადენის ჩაღრმავების სიღრმე უნდა იყოს არანაკლებ 1,0 მ."))

@@ -40,6 +40,12 @@ OVERGROUND_CROSSING_ANSWER = (
     "ეს სნიპ 2.04.08-87 სიმაღლის ციფრულ მნიშვნელობას არ ადგენს."
 )
 
+PARKING_SCOPE_CLARIFICATION = (
+    "სნიპ 2.04.08-87-ში ავტოსადგომში ან პარკინგში გაზსადენის გაყვანის ზოგადი ნებართვა ან აკრძალვა "
+    "პირდაპირ არ არის მოცემული. ამიტომ მხოლოდ ამ დოკუმენტით კითხვაზე „შეიძლება თუ არა“ ზუსტი პასუხი ვერ დგინდება. "
+    "დააზუსტეთ, საუბარია გარე გაზსადენზე, შენობის შიგნით არსებულ გაზსადენზე, ავტოგასამართ სადგურზე თუ გზასთან გადაკვეთაზე."
+)
+
 
 def checked_rule_answer(value: str) -> tuple[str, str] | None:
     """Return a fixed Georgian rendering for high-risk, unambiguous rules.
@@ -129,4 +135,14 @@ def overground_crossing_answer(value: str) -> str | None:
     crossing_markers = ("ავტოგზ", "რკინიგზ", "ტრამვ", "ტროლეიბ")
     if "მიწისზედა" in normalized and "გაზსადენ" in normalized and any(marker in normalized for marker in crossing_markers):
         return OVERGROUND_CROSSING_ANSWER
+    return None
+
+
+def parking_scope_clarification(value: str) -> str | None:
+    """Explain a genuine gap in the supplied standard without inventing a rule."""
+    normalized = value.casefold()
+    parking_terms = ("ავტოსადგომ", "პარკინგ", "ავტოფარეხ")
+    pipeline_terms = ("გაზსადენ", "გაზის მილ", "გაზის მილი")
+    if any(term in normalized for term in parking_terms) and any(term in normalized for term in pipeline_terms):
+        return PARKING_SCOPE_CLARIFICATION
     return None
