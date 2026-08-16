@@ -40,6 +40,14 @@ OVERGROUND_CROSSING_ANSWER = (
     "ეს სნიპ 2.04.08-87 სიმაღლის ციფრულ მნიშვნელობას არ ადგენს."
 )
 
+KITCHEN_GAS_STOVE_ANSWER = (
+    "საცხოვრებელ სახლში გაზქურა უნდა დამონტაჟდეს სამზარეულოში, რომლის სიმაღლე არანაკლებ 2,2 მ-ია "
+    "და რომელსაც აქვს გასაღები სარკმელი ან ფრამუგა, გამწოვი სავენტილაციო არხი და ბუნებრივი განათება. "
+    "პ. 6.29 ფართობს კვადრატულ მეტრებში არ ადგენს: სამზარეულოს მინიმალური მოცულობა 2-სანთურიანი "
+    "გაზქურისთვის 8 მ³, 3-სანთურიანისთვის 12 მ³, ხოლო 4-სანთურიანისთვის 15 მ³-ია; ფართობის დასადგენად "
+    "საჭიროა ოთახის ფაქტობრივი სიმაღლის გათვალისწინება."
+)
+
 PARKING_RELATED_ANSWER = (
     "სნიპ 2.04.08-87 არ შეიცავს ავტოსადგომში ან პარკინგში გაზსადენის გაყვანის ერთიან, "
     "სპეციალურ ნორმას; ამიტომ მხოლოდ ამ დოკუმენტით ზოგადი „შეიძლება/არ შეიძლება“ დასკვნა ვერ კეთდება. "
@@ -64,6 +72,14 @@ def checked_rule_answer(value: str) -> tuple[str, str] | None:
     and the exact provision number used to display the source in the UI.
     """
     normalized = value.casefold()
+    refers_to_kitchen_gas_stove = (
+        any(marker in normalized for marker in ("სამზარეულ", "გაზქურა", "გაზის ქურა"))
+        and any(marker in normalized for marker in (
+            "სიმაღლ", "ჭერ", "კვადრატ", "ფართობ", "მოცულ", "სანთურ", "მოწყობ",
+        ))
+    )
+    if refers_to_kitchen_gas_stove:
+        return KITCHEN_GAS_STOVE_ANSWER, "6.29"
     asks_pipe_material = any(marker in normalized for marker in (
         "როგორი მილ", "რომელი მილ", "რა მილი", "მილის მასალ", "ფოლადის მილ",
     ))

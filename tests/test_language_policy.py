@@ -51,6 +51,16 @@ class LanguagePolicyTests(TestCase):
         self.assertIsNone(overground_crossing_answer("მიწისქვეშა გაზსადენის ტრამვაის ლიანდაგზე გადაკვეთა"))
 
     def test_checked_rules_preserve_permissions_prohibitions_and_measurements(self) -> None:
+        kitchen = checked_rule_answer("რამდენ კვადრატულ მეტრში შეიძლება სამზარეულოს მოწყობა გაზქურით?")
+        self.assertEqual(kitchen[1], "6.29")
+        self.assertIn("8 მ³", kitchen[0])
+        self.assertIn("2,2 მ", kitchen[0])
+        self.assertIn("კვადრატულ მეტრებში არ ადგენს", kitchen[0])
+
+        kitchen_height = checked_rule_answer("რამდენი უნდა იყოს ჭერის სიმაღლე გაზიფიცირებულ სამზარეულოში?")
+        self.assertEqual(kitchen_height[1], "6.29")
+        self.assertIn("გამწოვი სავენტილაციო არხი", kitchen_height[0])
+
         indoor_pipe = checked_rule_answer("როგორი მილი უნდა მოეწყოს სახლში?")
         self.assertEqual(indoor_pipe[1], "6.2")
         self.assertIn("ფოლადის მილებით", indoor_pipe[0])
