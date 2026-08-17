@@ -15,6 +15,7 @@ from .language import (
     overground_crossing_answer,
     overground_overview_answer,
     parking_related_answer,
+    wet_room_related_answer,
 )
 from .search import broad_topic_sources, load_chunks, provision_source, search
 from .validation import usable_evidence
@@ -120,6 +121,13 @@ def chat(request: SearchRequest) -> ChatResponse:
         if usable_evidence(parking_sources):
             return ChatResponse(
                 answer=parking_context, sources=parking_sources, grounded=False, related=True,
+            )
+    wet_room_context = wet_room_related_answer(request.query)
+    if wet_room_context:
+        wet_room_sources = provision_source("6.37", chunks)
+        if usable_evidence(wet_room_sources):
+            return ChatResponse(
+                answer=wet_room_context, sources=wet_room_sources, grounded=False, related=True,
             )
     checked_rule = checked_rule_answer(request.query)
     if checked_rule:
