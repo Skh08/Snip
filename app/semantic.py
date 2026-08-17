@@ -117,7 +117,7 @@ def translate_to_russian(question: str) -> str:
     """Make Russian retrieval reliable when the visitor asks in Georgian."""
     response = _client().responses.create(
         model=ROUTING_MODEL,
-        reasoning={"effort": "minimal"},
+        reasoning={"effort": "low"},
         max_output_tokens=200,
         instructions=("Translate the question into Russian for searching a Russian technical standard. "
                       "Return only the Russian search query. Preserve numbers, units, and section references. "
@@ -185,7 +185,7 @@ def select_relevant_sources(question: str, candidates: list[SearchHit], limit: i
     )
     response = _client().responses.create(
         model=ROUTING_MODEL,
-        reasoning={"effort": "minimal"},
+        reasoning={"effort": "low"},
         max_output_tokens=200,
         instructions=("You are a strict evidence selector for a Russian technical standard. "
                       "Given a Georgian user question and complete candidate provisions, choose only passages that directly answer it. "
@@ -227,7 +227,7 @@ def select_related_sources(question: str, candidates: list[SearchHit], limit: in
     )
     response = _client().responses.create(
         model=ROUTING_MODEL,
-        reasoning={"effort": "minimal"},
+        reasoning={"effort": "low"},
         max_output_tokens=160,
         instructions=(
             "The Georgian question has no directly answering provision. Select at most three supplied provisions that are "
@@ -283,7 +283,7 @@ def _legacy_answer_question(question: str, sources: list[SearchHit]) -> str:
     evidence = "\n\n".join(f"[{item.chunk.source_label}]\n{item.chunk.text}" for item in sources)
     response = _client().responses.create(
         model=ANSWER_MODEL,
-        reasoning={"effort": "minimal"},
+        reasoning={"effort": "low"},
         max_output_tokens=MAX_OUTPUT_TOKENS,
         instructions=("Answer only from the supplied СНиП evidence. Write concise, grammatical, professional Georgian. "
                       "Use standard Georgian technical wording; do not transliterate Russian words and do not add facts. "
@@ -308,7 +308,7 @@ def polish_georgian_answer(draft: str, *, strict: bool = False) -> str:
         )
     response = _client().responses.create(
         model=ANSWER_MODEL,
-        reasoning={"effort": "minimal"},
+        reasoning={"effort": "low"},
         max_output_tokens=MAX_OUTPUT_TOKENS,
         instructions=("You are the final Georgian technical-language editor for a safety standard. "
                       "Rewrite the draft only to make it grammatical, precise, and natural Georgian. "
@@ -374,7 +374,7 @@ def answer_question(question: str, sources: list[SearchHit]) -> str:
     evidence = _evidence_text(sources)
     response = _client().responses.create(
         model=ANSWER_MODEL,
-        reasoning={"effort": "minimal"},
+        reasoning={"effort": "low"},
         max_output_tokens=MAX_OUTPUT_TOKENS,
         instructions=("Answer only from the supplied SNIP evidence. Write in Georgian only. "
                       "Return exactly one short, clear professional paragraph of one to three sentences. "
@@ -415,7 +415,7 @@ def answer_related_context(question: str, sources: list[SearchHit]) -> str:
     evidence = _evidence_text(sources)
     response = _client().responses.create(
         model=ANSWER_MODEL,
-        reasoning={"effort": "minimal"},
+        reasoning={"effort": "low"},
         max_output_tokens=MAX_OUTPUT_TOKENS,
         instructions=(
             "Write one concise, professional paragraph in Georgian only. Summarize only the supplied Russian technical "
