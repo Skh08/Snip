@@ -48,6 +48,13 @@ KITCHEN_GAS_STOVE_ANSWER = (
     "საჭიროა ოთახის ფაქტობრივი სიმაღლის გათვალისწინება."
 )
 
+WET_ROOM_RELATED_ANSWER = (
+    "სნიპ 2.04.08-87-ში სველ წერტილში ან აბაზანაში გაზსადენის ტრანზიტული გატარების ცალკე წესი პირდაპირ "
+    "არ არის მოცემული. ცნობისთვის, პ. 6.37 აბაზანაში გაზის წყლის გამაცხელებლის, გათბობის ქვაბისა და "
+    "გათბობის მოწყობილობების მონტაჟს დაუშვებლად მიიჩნევს; ეს მოთხოვნა თავად გაზსადენის გატარების "
+    "ნებართვას ან აკრძალვას არ ადგენს."
+)
+
 PARKING_RELATED_ANSWER = (
     "სნიპ 2.04.08-87 არ შეიცავს ავტოსადგომში ან პარკინგში გაზსადენის გაყვანის ერთიან, "
     "სპეციალურ ნორმას; ამიტომ მხოლოდ ამ დოკუმენტით ზოგადი „შეიძლება/არ შეიძლება“ დასკვნა ვერ კეთდება. "
@@ -184,4 +191,14 @@ def parking_related_answer(value: str) -> str | None:
     pipeline_terms = ("გაზსადენ", "გაზის მილ", "გაზის მილი")
     if any(term in normalized for term in parking_terms) and any(term in normalized for term in pipeline_terms):
         return PARKING_RELATED_ANSWER
+    return None
+
+
+def wet_room_related_answer(value: str) -> str | None:
+    """Surface the verified bathroom-appliance restriction without extending it to pipes."""
+    normalized = value.casefold()
+    wet_room_terms = ("სველ წერტილ", "აბაზან", "საპირფარეშ", "საშხაპ")
+    pipeline_terms = ("გაზსადენ", "გაზის მილ", "გაზის მილი")
+    if any(term in normalized for term in wet_room_terms) and any(term in normalized for term in pipeline_terms):
+        return WET_ROOM_RELATED_ANSWER
     return None
